@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dispatch</title>
+  <style>
+    :root{--color-primary:#2563eb;--color-primary-dark:#1d4ed8;--color-nav-bg:#1e293b;--color-nav-text:#f1f5f9;--color-accent:#f59e0b;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:system-ui,sans-serif;background:#f8fafc;color:#1e293b;}
+    nav{background:var(--color-nav-bg);color:var(--color-nav-text);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+    .nav-brand{font-weight:700;font-size:1.1rem;display:flex;align-items:center;gap:0.5rem;}
+    .trade-badge{font-size:0.65rem;background:var(--color-accent);color:#1e293b;padding:2px 8px;border-radius:99px;font-weight:700;}
+    .nav-links{display:flex;gap:1.5rem;font-size:0.9rem;}
+    .nav-links a{color:#94a3b8;text-decoration:none;}
+    .nav-links a:hover,.nav-links a.active{color:#fff;}
+    .nav-right{display:flex;align-items:center;gap:1rem;}
+    .nav-user{font-size:0.85rem;color:#94a3b8;}
+    .btn-logout{background:none;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;font-size:0.8rem;}
+    main{max-width:1400px;margin:2rem auto;padding:0 1.5rem;}
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+    h2{font-size:1.4rem;}
+    .filters{display:flex;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap;}
+    .filters select,.filters input{padding:0.5rem 0.8rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.875rem;background:#fff;}
+    .btn-primary{padding:0.5rem 1.1rem;background:var(--color-primary);color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;font-weight:600;}
+    .card{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.07);overflow:hidden;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{padding:0.75rem 1.25rem;text-align:left;font-size:0.875rem;}
+    th{background:#f8fafc;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;}
+    td{border-bottom:1px solid #f1f5f9;}
+    tr:hover td{background:#f8fafc;cursor:pointer;}
+    .badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:0.75rem;font-weight:600;}
+    .badge-open{background:#dbeafe;color:#1d4ed8;}
+    .badge-scheduled{background:#fef3c7;color:#b45309;}
+    .badge-completed{background:#dcfce7;color:#15803d;}
+    .badge-cancelled{background:#fee2e2;color:#b91c1c;}
+    .badge-invoiced{background:#ede9fe;color:#6d28d9;}
+    .empty{text-align:center;padding:3rem;color:#94a3b8;}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:#fff;border-radius:12px;padding:2rem;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;}
+    .modal h3{font-size:1.1rem;margin-bottom:1.25rem;}
+    .form-group{margin-bottom:1rem;}
+    .form-group label{display:block;font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:0.4rem;}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:0.6rem 0.9rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;}
+    .form-group textarea{resize:vertical;min-height:80px;}
+    .modal-footer{display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.5rem;}
+    .btn-cancel{padding:0.5rem 1rem;background:#f1f5f9;color:#475569;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">
+    <span id="nav-company">Dashboard</span>
+    <span class="trade-badge" id="nav-trade">TRADE</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html">Customers</a>
+    <a href="dispatch.html" class="active">Dispatch</a>
+    <a href="schedule.html">Schedule</a>
+    <a href="team.html" id="nav-team-label">Team</a>
+    <a href="pricebook.html">Pricebook</a>
+    <a href="quote-invoice.html">Quotes &amp; Invoices</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user-name"></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<main>
+  <div class="page-header">
+    <h2>Dispatch Board</h2>
+    <button class="btn-primary" onclick="openModal()">+ New Job</button>
+  </div>
+  <div class="filters">
+    <select id="status-filter" onchange="filterJobs()">
+      <option value="">All Statuses</option>
+      <option value="open">Open</option>
+      <option value="scheduled">Scheduled</option>
+      <option value="completed">Completed</option>
+      <option value="cancelled">Cancelled</option>
+      <option value="invoiced">Invoiced</option>
+    </select>
+    <select id="tech-filter" onchange="filterJobs()"><option value="">All <span id="tech-label-opt">Technicians</span></option></select>
+    <select id="type-filter" onchange="filterJobs()"><option value="">All Types</option></select>
+    <input type="text" id="search-input" placeholder="Search customer or notes..." oninput="filterJobs()" />
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr><th>#</th><th>Customer</th><th>Type</th><th id="tech-col">Technician</th><th>Status</th><th>Scheduled</th><th>Notes</th></tr></thead>
+      <tbody id="jobs-tbody"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- New Job Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>New Job</h3>
+    <div class="form-group"><label>Customer *</label><select id="f-customer"><option value="">Select customer...</option></select></div>
+    <div class="form-group"><label>Job Type</label><select id="f-type"><option value="">Select type...</option></select></div>
+    <div class="form-group"><label id="tech-field-label">Technician</label><select id="f-tech"><option value="">Unassigned</option></select></div>
+    <div class="form-group"><label>Scheduled Date</label><input type="datetime-local" id="f-date" /></div>
+    <div class="form-group"><label>Status</label><select id="f-status"><option value="open">Open</option><option value="scheduled">Scheduled</option></select></div>
+    <div class="form-group"><label>Notes</label><textarea id="f-notes" placeholder="Job notes..."></textarea></div>
+    <div id="modal-error" style="color:#ef4444;font-size:0.85rem;margin-bottom:0.75rem;display:none;"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="createJob()">Create Job</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='';let brand={};let token=localStorage.getItem('token');let allJobs=[];
+async function loadBrand(){try{const r=await fetch(API+'/api/brand');brand=await r.json();document.title=brand.companyName+' - Dispatch';document.getElementById('nav-company').textContent=brand.companyName;document.getElementById('nav-trade').textContent=(brand.tradeType||'trade').toUpperCase();const tl=brand.technicianLabel||'Technician';document.getElementById('nav-team-label').textContent=tl+'s';document.getElementById('tech-col').textContent=tl;document.getElementById('tech-field-label').textContent=tl;if(brand.colors){const s=document.documentElement.style;if(brand.colors.primary)s.setProperty('--color-primary',brand.colors.primary);if(brand.colors.primaryDark)s.setProperty('--color-primary-dark',brand.colors.primaryDark);if(brand.colors.navBg)s.setProperty('--color-nav-bg',brand.colors.navBg);if(brand.colors.navText)s.setProperty('--color-nav-text',brand.colors.navText);if(brand.colors.accent)s.setProperty('--color-accent',brand.colors.accent);}if(brand.jobTypes&&brand.jobTypes.length){const sel=document.getElementById('f-type');const sel2=document.getElementById('type-filter');brand.jobTypes.forEach(t=>{sel.innerHTML+='<option>'+t+'</option>';sel2.innerHTML+='<option>'+t+'</option>';});}}catch(e){console.warn(e);}}
+function logout(){localStorage.removeItem('token');location.href='index.html';}
+async function init(){await loadBrand();if(!token){location.href='index.html';return;}const r=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});if(!r.ok){location.href='index.html';return;}const me=await r.json();document.getElementById('nav-user-name').textContent=me.name||me.email;loadTechnicians();loadCustomers();loadJobs();}
+async function loadTechnicians(){try{const r=await fetch(API+'/api/users/technicians',{headers:{Authorization:'Bearer '+token}});const techs=await r.json();const sel=document.getElementById('f-tech');const fil=document.getElementById('tech-filter');techs.forEach(t=>{sel.innerHTML+='<option value="'+t.id+'">'+t.name+'</option>';fil.innerHTML+='<option value="'+t.id+'">'+t.name+'</option>';});}catch(e){console.warn(e);}}
+async function loadCustomers(){try{const r=await fetch(API+'/api/customers',{headers:{Authorization:'Bearer '+token}});const custs=await r.json();const sel=document.getElementById('f-customer');custs.forEach(c=>{sel.innerHTML+='<option value="'+c.id+'">'+c.name+'</option>';});}catch(e){console.warn(e);}}
+async function loadJobs(){try{const r=await fetch(API+'/api/jobs',{headers:{Authorization:'Bearer '+token}});allJobs=await r.json();renderJobs(allJobs);}catch(e){document.getElementById('jobs-tbody').innerHTML='<tr><td colspan="7" class="empty" style="color:#ef4444">Failed to load.</td></tr>';}}
+function renderJobs(list){const tb=document.getElementById('jobs-tbody');if(!list.length){tb.innerHTML='<tr><td colspan="7" class="empty">No jobs found.</td></tr>';return;}tb.innerHTML=list.map(j=>'<tr onclick="location.href='job.html?id='+j.id+''"><td>#'+j.id+'</td><td>'+(j.customer?j.customer.name:'-')+'</td><td>'+(j.jobType||'-')+'</td><td>'+(j.technician?j.technician.name:'-')+'</td><td><span class="badge badge-'+j.status+'">'+j.status+'</span></td><td>'+(j.scheduledDate?new Date(j.scheduledDate).toLocaleString():'-')+'</td><td>'+(j.notes?j.notes.substring(0,40)+(j.notes.length>40?'...':''):'-')+'</td></tr>').join('');}
+function filterJobs(){const status=document.getElementById('status-filter').value;const tech=document.getElementById('tech-filter').value;const type=document.getElementById('type-filter').value;const q=document.getElementById('search-input').value.toLowerCase();const filtered=allJobs.filter(j=>(!status||j.status===status)&&(!tech||j.technicianId==tech)&&(!type||j.jobType===type)&&(!q||(j.customer&&j.customer.name.toLowerCase().includes(q))||(j.notes&&j.notes.toLowerCase().includes(q))));renderJobs(filtered);}
+function openModal(){document.getElementById('modal').classList.add('open');}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+async function createJob(){const custId=document.getElementById('f-customer').value;if(!custId){showErr('Customer is required');return;}const body={customerId:parseInt(custId),jobType:document.getElementById('f-type').value,technicianId:document.getElementById('f-tech').value||null,scheduledDate:document.getElementById('f-date').value||null,status:document.getElementById('f-status').value,notes:document.getElementById('f-notes').value.trim()};try{const r=await fetch(API+'/api/jobs',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');closeModal();loadJobs();}catch(e){showErr(e.message);}}
+function showErr(msg){const el=document.getElementById('modal-error');el.textContent=msg;el.style.display='block';}
+init();
+</script>
+</body>
+</html>
