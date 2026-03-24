@@ -1,10 +1,13 @@
 /**
  * seed_jobs.js
- * Seeds 12 diverse test jobs across trades and statuses,
- * along with 4 test customers and 3 technicians.
+ * Job/customer/team seed template — no data is pre-populated.
+ * Each business must provide their own customers, team members, and jobs.
  *
- * Usage:
+ * To seed sample data, add entries to the arrays below
+ * following the format shown in the examples, then run:
  *   node seed_jobs.js
+ *
+ * Or add customers, team, and jobs directly via the UI.
  */
 
 require('dotenv').config();
@@ -14,73 +17,90 @@ const brand = require('../brand.config');
 
 const prisma = new PrismaClient();
 
+// ── Add your team members here ──────────────────────────────────────────────
+// Example format (uncomment and customize):
+//
+// const TEAM = [
+//   { email: 'tech@yourcompany.com', firstName: 'First', lastName: 'Last', role: 'technician' },
+//   { email: 'dispatch@yourcompany.com', firstName: 'First', lastName: 'Last', role: 'dispatcher' },
+// ];
+//
+// Supported roles: super-admin | admin | technician | dispatcher | office
+
+const TEAM = [];
+
+// ── Add your customers here ─────────────────────────────────────────────────
+// Example format (uncomment and customize):
+//
+// const CUSTOMERS = [
+//   { firstName: 'John', lastName: 'Doe', phone: '555-0001', email: 'john@example.com', address: '123 Main St', city: 'Anytown', state: 'KS', zip: '66001', type: 'residential' },
+// ];
+//
+// Supported types: residential | commercial | industrial
+
+const CUSTOMERS = [];
+
+// ── Add your jobs here ──────────────────────────────────────────────────────
+// Jobs reference customers and team members by array index (0-based).
+// Example format (uncomment and customize):
+//
+// const JOBS = [
+//   { title: 'Service Call', type: 'General', status: 'pending', priority: 'normal', customerIndex: 0, techIndex: 0, scheduledDate: '2026-04-01', scheduledTime: '09:00', duration: 1.5, notes: '' },
+// ];
+//
+// Supported statuses: pending | scheduled | in-progress | completed | cancelled
+// Supported priorities: low | normal | high | urgent
+
+const JOBS = [];
+
 async function main() {
-  console.log('Seeding test customers, technicians, and jobs...');
+  if (TEAM.length === 0 && CUSTOMERS.length === 0 && JOBS.length === 0) {
+    console.log('No seed data to create.');
+    console.log('Add your team members, customers, and jobs to the arrays in seed_jobs.js,');
+    console.log('or add them directly via the UI.');
+    return;
+  }
 
-  // ── Create test technicians ──────────────────────────────────────────────
-  const hash = await bcrypt.hash('test1234!', 10);
-  const techData = [
-    { email: 'eli@example.com',   firstName: 'Eli',   lastName: 'Martinez', role: 'technician', password: hash },
-    { email: 'sarah@example.com', firstName: 'Sarah', lastName: 'Chen',     role: 'technician', password: hash },
-    { email: 'mike@example.com',  firstName: 'Mike',  lastName: 'Johnson',  role: 'dispatcher', password: hash },
-  ];
+  const defaultPassword = process.env.DEFAULT_PASSWORD || 'changeme123!';
+  const hash = await bcrypt.hash(defaultPassword, 10);
 
+  // Create team members
   const techs = [];
-  for (const t of techData) {
+  for (const t of TEAM) {
     const existing = await prisma.user.findUnique({ where: { email: t.email } });
     if (existing) { techs.push(existing); continue; }
-    techs.push(await prisma.user.create({ data: t }));
+    techs.push(await prisma.user.create({ data: { ...t, password: hash } }));
   }
 
-  // ── Create test customers ────────────────────────────────────────────────
-  const custData = [
-    { firstName: 'James',    lastName: 'Wilson',    phone: '913-555-0101', email: 'james@example.com',    address: '123 Oak St',     city: 'Overland Park', state: brand.defaultState, zip: '66210', type: 'residential' },
-    { firstName: 'Patricia', lastName: 'Garcia',    phone: '913-555-0102', email: 'patricia@example.com', address: '456 Elm Ave',    city: 'Lenexa',        state: brand.defaultState, zip: '66215', type: 'residential' },
-    { firstName: 'Robert',   lastName: 'Anderson',  phone: '913-555-0103', email: 'robert@example.com',   address: '789 Main St',    city: 'Olathe',        state: brand.defaultState, zip: '66061', type: 'commercial' },
-    { firstName: 'Linda',    lastName: 'Thompson',  phone: '913-555-0104', email: 'linda@example.com',    address: '321 Walnut Dr',  city: 'Shawnee',       state: brand.defaultState, zip: '66216', type: 'residential' },
-  ];
-
+  // Create customers
   const custs = [];
-  for (const c of custData) {
+  for (const c of CUSTOMERS) {
     const existing = await prisma.customer.findFirst({ where: { email: c.email } });
     if (existing) { custs.push(existing); continue; }
-    custs.push(await prisma.customer.create({ data: c }));
+    custs.push(await prisma.customer.create({ data: { ...c, state: c.state || brand.defaultState } }));
   }
 
-  // ── Create 12 diverse test jobs ──────────────────────────────────────────
-  const today = new Date();
-  const dateStr = (offsetDays) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() + offsetDays);
-    return d.toISOString().split('T')[0];
-  };
-
-  const jobData = [
-    { title: 'Panel Upgrade 200A',         type: 'Panel Upgrade',     tradeType: 'electrical',    status: 'pending',     priority: 'high',   customerId: custs[0].id, technicianId: techs[0].id, scheduledDate: dateStr(0),  scheduledTime: '08:00', duration: 4, notes: 'Older home, knob and tube in attic' },
-    { title: 'Kitchen Faucet Replace',      type: 'Faucet Install',    tradeType: 'plumbing',      status: 'scheduled',   priority: 'normal', customerId: custs[1].id, technicianId: techs[1].id, scheduledDate: dateStr(0),  scheduledTime: '09:00', duration: 1.5, notes: 'Moen faucet customer purchased' },
-    { title: 'AC Tune-Up',                  type: 'AC Tune-Up',        tradeType: 'hvac',           status: 'scheduled',   priority: 'normal', customerId: custs[2].id, technicianId: techs[0].id, scheduledDate: dateStr(1),  scheduledTime: '10:00', duration: 1, notes: 'Annual spring maintenance' },
-    { title: 'Drywall Patch - Bathroom',    type: 'Drywall Repair',    tradeType: 'contracting',   status: 'in-progress', priority: 'normal', customerId: custs[3].id, technicianId: techs[1].id, scheduledDate: dateStr(-1), scheduledTime: '08:00', duration: 3, notes: 'Water damage behind toilet' },
-    { title: 'EV Charger Install',          type: 'EV Charger',        tradeType: 'electrical',    status: 'pending',     priority: 'normal', customerId: custs[1].id, technicianId: null,        scheduledDate: dateStr(3),  scheduledTime: '13:00', duration: 3, notes: 'Tesla Wall Connector, 60A circuit needed' },
-    { title: 'Water Heater Replace 50g',    type: 'Water Heater',      tradeType: 'plumbing',      status: 'completed',   priority: 'urgent', customerId: custs[0].id, technicianId: techs[0].id, scheduledDate: dateStr(-3), scheduledTime: '07:00', duration: 3, notes: 'Emergency - no hot water' },
-    { title: 'Furnace Tune-Up',             type: 'Furnace Tune-Up',   tradeType: 'hvac',           status: 'completed',   priority: 'low',    customerId: custs[3].id, technicianId: techs[1].id, scheduledDate: dateStr(-5), scheduledTime: '14:00', duration: 1, notes: 'Pre-winter maintenance' },
-    { title: 'Roof Leak Repair',            type: 'Roof Repair',       tradeType: 'contracting',   status: 'scheduled',   priority: 'high',   customerId: custs[2].id, technicianId: techs[0].id, scheduledDate: dateStr(2),  scheduledTime: '08:00', duration: 4, notes: 'Active leak near chimney flashing' },
-    { title: 'Whole-House Surge Protector', type: 'Surge Protector',   tradeType: 'electrical',    status: 'scheduled',   priority: 'normal', customerId: custs[3].id, technicianId: techs[0].id, scheduledDate: dateStr(4),  scheduledTime: '11:00', duration: 1.5, notes: 'Install at main panel' },
-    { title: 'Drain Cleaning - Kitchen',    type: 'Drain Cleaning',    tradeType: 'plumbing',      status: 'cancelled',   priority: 'normal', customerId: custs[2].id, technicianId: techs[1].id, scheduledDate: dateStr(-2), scheduledTime: '15:00', duration: 1, notes: 'Customer fixed it themselves' },
-    { title: 'Mini-Split Install',          type: 'Mini-Split',        tradeType: 'hvac',           status: 'pending',     priority: 'normal', customerId: custs[0].id, technicianId: null,        scheduledDate: dateStr(7),  scheduledTime: '08:00', duration: 6, notes: 'Sunroom addition, single zone' },
-    { title: 'LVP Flooring Install',        type: 'Flooring Install',  tradeType: 'contracting',   status: 'scheduled',   priority: 'normal', customerId: custs[1].id, technicianId: techs[1].id, scheduledDate: dateStr(5),  scheduledTime: '07:00', duration: 8, notes: '500 sqft living room, demo old carpet' },
-  ];
-
+  // Create jobs
   let created = 0;
-  for (const j of jobData) {
+  for (const j of JOBS) {
+    const { customerIndex, techIndex, ...jobData } = j;
+    if (customerIndex == null || !custs[customerIndex]) continue;
     const exists = await prisma.job.findFirst({
-      where: { title: j.title, customerId: j.customerId },
+      where: { title: jobData.title, customerId: custs[customerIndex].id },
     });
     if (exists) continue;
-    await prisma.job.create({ data: j });
+    await prisma.job.create({
+      data: {
+        ...jobData,
+        customerId: custs[customerIndex].id,
+        technicianId: techIndex != null && techs[techIndex] ? techs[techIndex].id : null,
+        tradeType: brand.tradeType,
+      },
+    });
     created++;
   }
 
-  console.log(`Done. Created ${created} jobs, ${custs.length} customers, ${techs.length} technicians.`);
+  console.log(`Done. Created ${techs.length} team members, ${custs.length} customers, ${created} jobs.`);
 }
 
 main()
