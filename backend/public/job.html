@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Job Detail</title>
+  <style>
+    :root{--color-primary:#2563eb;--color-primary-dark:#1d4ed8;--color-nav-bg:#1e293b;--color-nav-text:#f1f5f9;--color-accent:#f59e0b;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:system-ui,sans-serif;background:#f8fafc;color:#1e293b;}
+    nav{background:var(--color-nav-bg);color:var(--color-nav-text);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+    .nav-brand{font-weight:700;font-size:1.1rem;display:flex;align-items:center;gap:0.5rem;}
+    .trade-badge{font-size:0.65rem;background:var(--color-accent);color:#1e293b;padding:2px 8px;border-radius:99px;font-weight:700;}
+    .nav-links{display:flex;gap:1.5rem;font-size:0.9rem;}
+    .nav-links a{color:#94a3b8;text-decoration:none;}
+    .nav-links a:hover,.nav-links a.active{color:#fff;}
+    .nav-right{display:flex;align-items:center;gap:1rem;}
+    .nav-user{font-size:0.85rem;color:#94a3b8;}
+    .btn-logout{background:none;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;font-size:0.8rem;}
+    main{max-width:1000px;margin:2rem auto;padding:0 1.5rem;}
+    .back-link{color:#64748b;font-size:0.875rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.3rem;margin-bottom:1.25rem;}
+    .back-link:hover{color:var(--color-primary);}
+    .job-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;}
+    .job-title h2{font-size:1.4rem;margin-bottom:0.25rem;}
+    .job-title .meta{color:#64748b;font-size:0.875rem;}
+    .status-select{padding:0.4rem 0.8rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.875rem;background:#fff;}
+    .btn-primary{padding:0.5rem 1.1rem;background:var(--color-primary);color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;font-weight:600;}
+    .btn-sm{padding:0.4rem 0.9rem;background:var(--color-primary);color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;font-weight:600;}
+    .btn-danger{padding:0.4rem 0.9rem;background:#ef4444;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;}
+    .btn-outline{padding:0.4rem 0.9rem;background:#fff;color:#374151;border:1px solid #cbd5e1;border-radius:6px;font-size:0.85rem;cursor:pointer;}
+    .grid-2{display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;}
+    .card{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.07);padding:1.5rem;margin-bottom:1.25rem;}
+    .card h3{font-size:1rem;font-weight:600;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f1f5f9;}
+    .info-row{display:flex;justify-content:space-between;padding:0.4rem 0;font-size:0.875rem;border-bottom:1px solid #f8fafc;}
+    .info-row:last-child{border-bottom:none;}
+    .info-label{color:#64748b;font-weight:500;}
+    .info-value{color:#1e293b;}
+    .badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:0.75rem;font-weight:600;}
+    .badge-open{background:#dbeafe;color:#1d4ed8;}
+    .badge-scheduled{background:#fef3c7;color:#b45309;}
+    .badge-completed{background:#dcfce7;color:#15803d;}
+    .badge-cancelled{background:#fee2e2;color:#b91c1c;}
+    .badge-invoiced{background:#ede9fe;color:#6d28d9;}
+    .notes-area{width:100%;padding:0.65rem;border:1px solid #e2e8f0;border-radius:8px;font-size:0.875rem;resize:vertical;min-height:100px;font-family:inherit;}
+    .line-items table{width:100%;border-collapse:collapse;}
+    .line-items th,.line-items td{padding:0.6rem 0.75rem;text-align:left;font-size:0.85rem;}
+    .line-items th{background:#f8fafc;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;}
+    .line-items td{border-bottom:1px solid #f8fafc;}
+    .total-row td{font-weight:700;border-top:2px solid #e2e8f0;}
+    .action-bar{display:flex;gap:0.75rem;flex-wrap:wrap;}
+    select.inline{padding:0.35rem 0.7rem;border:1px solid #cbd5e1;border-radius:6px;font-size:0.85rem;background:#fff;}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">
+    <span id="nav-company">Dashboard</span>
+    <span class="trade-badge" id="nav-trade">TRADE</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html">Customers</a>
+    <a href="dispatch.html" class="active">Dispatch</a>
+    <a href="schedule.html">Schedule</a>
+    <a href="team.html" id="nav-team-label">Team</a>
+    <a href="pricebook.html">Pricebook</a>
+    <a href="quote-invoice.html">Quotes &amp; Invoices</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user-name"></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<main>
+  <a href="dispatch.html" class="back-link">&larr; Back to Dispatch</a>
+  <div id="job-content" style="display:none;">
+    <div class="job-header">
+      <div class="job-title">
+        <h2 id="job-heading">Job #</h2>
+        <div class="meta" id="job-meta"></div>
+      </div>
+      <div class="action-bar">
+        <select class="inline" id="status-select" onchange="updateStatus()">
+          <option value="open">Open</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="completed">Completed</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="invoiced">Invoiced</option>
+        </select>
+        <button class="btn-sm" onclick="saveNotes()">Save Notes</button>
+        <button class="btn-sm" onclick="createInvoice()">Create Invoice</button>
+        <button class="btn-outline" onclick="sendSMS()">Send SMS</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <h3>Job Details</h3>
+          <div class="info-row"><span class="info-label">Customer</span><span class="info-value" id="d-customer">-</span></div>
+          <div class="info-row"><span class="info-label">Job Type</span><span class="info-value" id="d-type">-</span></div>
+          <div class="info-row"><span class="info-label" id="d-tech-label">Technician</span><span class="info-value" id="d-tech">-</span></div>
+          <div class="info-row"><span class="info-label">Scheduled</span><span class="info-value" id="d-scheduled">-</span></div>
+          <div class="info-row"><span class="info-label">Status</span><span class="info-value" id="d-status">-</span></div>
+          <div class="info-row"><span class="info-label">Trade Type</span><span class="info-value" id="d-tradetype">-</span></div>
+        </div>
+        <div class="card">
+          <h3>Notes</h3>
+          <textarea class="notes-area" id="job-notes" placeholder="Add job notes..."></textarea>
+        </div>
+        <div class="card line-items">
+          <h3>Line Items</h3>
+          <table>
+            <thead><tr><th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+            <tbody id="line-items-tbody"><tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:1rem;">No line items.</td></tr></tbody>
+            <tfoot><tr class="total-row"><td colspan="3">Total</td><td id="line-total">$0.00</td></tr></tfoot>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h3>Customer Info</h3>
+          <div class="info-row"><span class="info-label">Name</span><span class="info-value" id="c-name">-</span></div>
+          <div class="info-row"><span class="info-label">Phone</span><span class="info-value" id="c-phone">-</span></div>
+          <div class="info-row"><span class="info-label">Email</span><span class="info-value" id="c-email">-</span></div>
+          <div class="info-row"><span class="info-label">Address</span><span class="info-value" id="c-address">-</span></div>
+          <div style="margin-top:0.75rem;"><a id="c-link" href="#" class="btn-sm" style="text-decoration:none;">View Customer</a></div>
+        </div>
+        <div class="card">
+          <h3>Invoices &amp; Quotes</h3>
+          <div id="inv-list" style="font-size:0.875rem;color:#94a3b8;">None yet.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="loading-msg" style="text-align:center;padding:4rem;color:#94a3b8;">Loading job...</div>
+  <div id="error-msg" style="text-align:center;padding:4rem;color:#ef4444;display:none;">Job not found.</div>
+</main>
+<script>
+const API='';let brand={};let token=localStorage.getItem('token');
+const jobId=new URLSearchParams(window.location.search).get('id');
+async function loadBrand(){try{const r=await fetch(API+'/api/brand');brand=await r.json();document.title=brand.companyName+' - Job';document.getElementById('nav-company').textContent=brand.companyName;document.getElementById('nav-trade').textContent=(brand.tradeType||'trade').toUpperCase();const tl=brand.technicianLabel||'Technician';document.getElementById('nav-team-label').textContent=tl+'s';document.getElementById('d-tech-label').textContent=tl;if(brand.colors){const s=document.documentElement.style;if(brand.colors.primary)s.setProperty('--color-primary',brand.colors.primary);if(brand.colors.primaryDark)s.setProperty('--color-primary-dark',brand.colors.primaryDark);if(brand.colors.navBg)s.setProperty('--color-nav-bg',brand.colors.navBg);if(brand.colors.navText)s.setProperty('--color-nav-text',brand.colors.navText);if(brand.colors.accent)s.setProperty('--color-accent',brand.colors.accent);}}catch(e){console.warn(e);}}
+function logout(){localStorage.removeItem('token');location.href='index.html';}
+async function init(){await loadBrand();if(!token){location.href='index.html';return;}if(!jobId){document.getElementById('loading-msg').style.display='none';document.getElementById('error-msg').style.display='block';return;}const mr=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});if(!mr.ok){location.href='index.html';return;}const me=await mr.json();document.getElementById('nav-user-name').textContent=me.name||me.email;loadJob();}
+async function loadJob(){try{const r=await fetch(API+'/api/jobs/'+jobId,{headers:{Authorization:'Bearer '+token}});if(!r.ok)throw new Error('not found');const job=await r.json();document.getElementById('loading-msg').style.display='none';document.getElementById('job-content').style.display='block';document.getElementById('job-heading').textContent='Job #'+job.id+(job.jobType?' - '+job.jobType:'');document.getElementById('job-meta').textContent='Created '+new Date(job.createdAt).toLocaleDateString();document.getElementById('status-select').value=job.status||'open';document.getElementById('d-status').innerHTML='<span class="badge badge-'+job.status+'">'+job.status+'</span>';document.getElementById('d-type').textContent=job.jobType||'-';document.getElementById('d-tech').textContent=job.technician?job.technician.name:'-';document.getElementById('d-scheduled').textContent=job.scheduledDate?new Date(job.scheduledDate).toLocaleString():'-';document.getElementById('d-tradetype').textContent=job.tradeType||brand.tradeType||'-';document.getElementById('job-notes').value=job.notes||'';if(job.customer){const c=job.customer;document.getElementById('d-customer').textContent=c.name;document.getElementById('c-name').textContent=c.name;document.getElementById('c-phone').textContent=c.phone||'-';document.getElementById('c-email').textContent=c.email||'-';document.getElementById('c-address').textContent=(c.address||'')+(c.city?', '+c.city:'')+(c.state?' '+c.state:'')||'-';document.getElementById('c-link').href='customer-detail.html?id='+c.id;}if(job.lineItems&&job.lineItems.length){let total=0;document.getElementById('line-items-tbody').innerHTML=job.lineItems.map(li=>{const t=(li.quantity||1)*(li.unitPrice||0);total+=t;return '<tr><td>'+li.name+'</td><td>'+(li.quantity||1)+'</td><td>$'+Number(li.unitPrice||0).toFixed(2)+'</td><td>$'+t.toFixed(2)+'</td></tr>';}).join('');document.getElementById('line-total').textContent='$'+total.toFixed(2);}loadInvoices(job.id);}catch(e){document.getElementById('loading-msg').style.display='none';document.getElementById('error-msg').style.display='block';}}
+async function loadInvoices(jid){try{const r=await fetch(API+'/api/invoices?jobId='+jid,{headers:{Authorization:'Bearer '+token}});const invs=await r.json();const el=document.getElementById('inv-list');if(!invs.length){el.textContent='No invoices yet.';return;}el.innerHTML=invs.map(i=>'<div style="padding:0.4rem 0;border-bottom:1px solid #f1f5f9;font-size:0.85rem;">Invoice #'+i.id+' - $'+Number(i.total||0).toFixed(2)+' - <span class="badge badge-'+(i.status||'unpaid')+'">'+i.status+'</span></div>').join('');}catch(e){console.warn(e);}}
+async function updateStatus(){const status=document.getElementById('status-select').value;try{await fetch(API+'/api/jobs/'+jobId,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({status})});document.getElementById('d-status').innerHTML='<span class="badge badge-'+status+'">'+status+'</span>';}catch(e){alert('Failed to update status');}}
+async function saveNotes(){const notes=document.getElementById('job-notes').value;try{await fetch(API+'/api/jobs/'+jobId,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({notes})});alert('Notes saved.');}catch(e){alert('Failed to save notes');}}
+async function createInvoice(){if(!confirm('Create an invoice for this job?'))return;try{const r=await fetch(API+'/api/invoices',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({jobId:parseInt(jobId)})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');alert('Invoice #'+d.id+' created!');loadJob();}catch(e){alert(e.message);}}
+async function sendSMS(){try{const r=await fetch(API+'/api/sms/job/'+jobId,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({type:'scheduled'})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');alert('SMS sent!');}catch(e){alert('SMS failed: '+e.message);}}
+init();
+</script>
+</body>
+</html>
