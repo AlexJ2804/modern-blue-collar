@@ -1,0 +1,27 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Environment secrets — never commit these
+backend/.env
+.env
+
+# SQLite databases (prod data)
+backend/prisma/*.db
+backend/prisma/*.db-journal
+backend/prisma/dev.db
+
+# Backups
+backend/backups/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build artifacts
+dist/
+build/
