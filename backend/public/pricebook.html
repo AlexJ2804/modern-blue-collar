@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pricebook</title>
+  <style>
+    :root{--color-primary:#2563eb;--color-primary-dark:#1d4ed8;--color-nav-bg:#1e293b;--color-nav-text:#f1f5f9;--color-accent:#f59e0b;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:system-ui,sans-serif;background:#f8fafc;color:#1e293b;}
+    nav{background:var(--color-nav-bg);color:var(--color-nav-text);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+    .nav-brand{font-weight:700;font-size:1.1rem;display:flex;align-items:center;gap:0.5rem;}
+    .trade-badge{font-size:0.65rem;background:var(--color-accent);color:#1e293b;padding:2px 8px;border-radius:99px;font-weight:700;}
+    .nav-links{display:flex;gap:1.5rem;font-size:0.9rem;}
+    .nav-links a{color:#94a3b8;text-decoration:none;}
+    .nav-links a:hover,.nav-links a.active{color:#fff;}
+    .nav-right{display:flex;align-items:center;gap:1rem;}
+    .nav-user{font-size:0.85rem;color:#94a3b8;}
+    .btn-logout{background:none;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;font-size:0.8rem;}
+    main{max-width:1100px;margin:2rem auto;padding:0 1.5rem;}
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+    h2{font-size:1.4rem;}
+    .btn-primary{padding:0.5rem 1.1rem;background:var(--color-primary);color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;font-weight:600;}
+    .filters{display:flex;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap;}
+    .filters input,.filters select{padding:0.5rem 0.8rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.875rem;background:#fff;}
+    .filters input{flex:1;min-width:180px;}
+    .card{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.07);overflow:hidden;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{padding:0.75rem 1.25rem;text-align:left;font-size:0.875rem;}
+    th{background:#f8fafc;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;}
+    td{border-bottom:1px solid #f1f5f9;}
+    tr:hover td{background:#f8fafc;}
+    .price{font-weight:600;color:#15803d;}
+    .empty{text-align:center;padding:3rem;color:#94a3b8;}
+    .action-btn{background:none;border:1px solid #e2e8f0;border-radius:6px;padding:0.3rem 0.7rem;cursor:pointer;font-size:0.8rem;color:#475569;}
+    .action-btn:hover{border-color:#94a3b8;}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:#fff;border-radius:12px;padding:2rem;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+    .modal h3{font-size:1.1rem;margin-bottom:1.25rem;}
+    .form-group{margin-bottom:1rem;}
+    .form-group label{display:block;font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:0.4rem;}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:0.6rem 0.9rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;}
+    .form-group textarea{resize:vertical;min-height:70px;}
+    .modal-footer{display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.5rem;}
+    .btn-cancel{padding:0.5rem 1rem;background:#f1f5f9;color:#475569;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">
+    <span id="nav-company">Dashboard</span>
+    <span class="trade-badge" id="nav-trade">TRADE</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html">Customers</a>
+    <a href="dispatch.html">Dispatch</a>
+    <a href="schedule.html">Schedule</a>
+    <a href="team.html" id="nav-team-label">Team</a>
+    <a href="pricebook.html" class="active">Pricebook</a>
+    <a href="quote-invoice.html">Quotes &amp; Invoices</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user-name"></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<main>
+  <div class="page-header">
+    <h2 id="page-title">Pricebook</h2>
+    <button class="btn-primary" onclick="openModal()">+ Add Item</button>
+  </div>
+  <div class="filters">
+    <input type="text" id="search-input" placeholder="Search items..." oninput="filterItems()" />
+    <select id="category-filter" onchange="filterItems()"><option value="">All Categories</option></select>
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr><th>Item Name</th><th>Category</th><th>Description</th><th>Unit Price</th><th>Unit</th><th>Actions</th></tr></thead>
+      <tbody id="items-tbody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Add/Edit Item Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Add Pricebook Item</h3>
+    <div class="form-group"><label>Name *</label><input type="text" id="f-name" placeholder="Item name" /></div>
+    <div class="form-group"><label>Category</label><input type="text" id="f-category" placeholder="e.g. Labor, Parts, Service" /></div>
+    <div class="form-group"><label>Description</label><textarea id="f-desc" placeholder="Optional description"></textarea></div>
+    <div class="form-group"><label>Unit Price *</label><input type="number" id="f-price" placeholder="0.00" step="0.01" min="0" /></div>
+    <div class="form-group"><label>Unit</label><input type="text" id="f-unit" placeholder="e.g. each, hr, ft" /></div>
+    <div id="modal-error" style="color:#ef4444;font-size:0.85rem;margin-bottom:0.75rem;display:none;"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveItem()">Save Item</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='';let brand={};let token=localStorage.getItem('token');let allItems=[];let editId=null;
+async function loadBrand(){try{const r=await fetch(API+'/api/brand');brand=await r.json();document.title=brand.companyName+' - Pricebook';document.getElementById('nav-company').textContent=brand.companyName;document.getElementById('nav-trade').textContent=(brand.tradeType||'trade').toUpperCase();document.getElementById('nav-team-label').textContent=(brand.technicianLabel||'Technician')+'s';const industry=brand.industryLabel||'Trade';document.getElementById('page-title').textContent=industry+' Pricebook';if(brand.colors){const s=document.documentElement.style;if(brand.colors.primary)s.setProperty('--color-primary',brand.colors.primary);if(brand.colors.primaryDark)s.setProperty('--color-primary-dark',brand.colors.primaryDark);if(brand.colors.navBg)s.setProperty('--color-nav-bg',brand.colors.navBg);if(brand.colors.navText)s.setProperty('--color-nav-text',brand.colors.navText);if(brand.colors.accent)s.setProperty('--color-accent',brand.colors.accent);}}catch(e){console.warn(e);}}
+function logout(){localStorage.removeItem('token');location.href='index.html';}
+async function init(){await loadBrand();if(!token){location.href='index.html';return;}const r=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});if(!r.ok){location.href='index.html';return;}const me=await r.json();document.getElementById('nav-user-name').textContent=me.name||me.email;loadItems();}
+async function loadItems(){try{const r=await fetch(API+'/api/pricebook',{headers:{Authorization:'Bearer '+token}});allItems=await r.json();const cats=new Set(allItems.filter(i=>i.category).map(i=>i.category));const sel=document.getElementById('category-filter');cats.forEach(c=>{sel.innerHTML+='<option value="'+c+'">'+c+'</option>';});renderItems(allItems);}catch(e){document.getElementById('items-tbody').innerHTML='<tr><td colspan="6" class="empty" style="color:#ef4444">Failed to load.</td></tr>';}}
+function renderItems(list){const tb=document.getElementById('items-tbody');if(!list.length){tb.innerHTML='<tr><td colspan="6" class="empty">No items found.</td></tr>';return;}tb.innerHTML=list.map(i=>'<tr><td>'+i.name+'</td><td>'+(i.category||'-')+'</td><td>'+(i.description?i.description.substring(0,50):'-')+'</td><td class="price">$'+Number(i.unitPrice||0).toFixed(2)+'</td><td>'+(i.unit||'each')+'</td><td><button class="action-btn" onclick="editItem('+i.id+')">Edit</button></td></tr>').join('');}
+function filterItems(){const q=document.getElementById('search-input').value.toLowerCase();const cat=document.getElementById('category-filter').value;const filtered=allItems.filter(i=>(!q||(i.name&&i.name.toLowerCase().includes(q))||(i.description&&i.description.toLowerCase().includes(q)))&&(!cat||i.category===cat));renderItems(filtered);}
+function openModal(id){editId=id||null;document.getElementById('modal-title').textContent=editId?'Edit Item':'Add Pricebook Item';if(!editId){['f-name','f-category','f-desc','f-price','f-unit'].forEach(id=>document.getElementById(id).value='');}document.getElementById('modal').classList.add('open');}
+function editItem(id){const item=allItems.find(i=>i.id===id);if(!item)return;editId=id;document.getElementById('f-name').value=item.name||'';document.getElementById('f-category').value=item.category||'';document.getElementById('f-desc').value=item.description||'';document.getElementById('f-price').value=item.unitPrice||'';document.getElementById('f-unit').value=item.unit||'';document.getElementById('modal-title').textContent='Edit Item';document.getElementById('modal').classList.add('open');}
+function closeModal(){document.getElementById('modal').classList.remove('open');editId=null;}
+async function saveItem(){const name=document.getElementById('f-name').value.trim();const price=document.getElementById('f-price').value;if(!name||!price){showErr('Name and price are required');return;}const body={name,category:document.getElementById('f-category').value.trim(),description:document.getElementById('f-desc').value.trim(),unitPrice:parseFloat(price),unit:document.getElementById('f-unit').value.trim()||'each'};try{const url=editId?API+'/api/pricebook/'+editId:API+'/api/pricebook';const method=editId?'PUT':'POST';const r=await fetch(url,{method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');closeModal();loadItems();}catch(e){showErr(e.message);}}
+function showErr(msg){const el=document.getElementById('modal-error');el.textContent=msg;el.style.display='block';}
+init();
+</script>
+</body>
+</html>
