@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quotes &amp; Invoices</title>
+  <style>
+    :root{--color-primary:#2563eb;--color-primary-dark:#1d4ed8;--color-nav-bg:#1e293b;--color-nav-text:#f1f5f9;--color-accent:#f59e0b;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:system-ui,sans-serif;background:#f8fafc;color:#1e293b;}
+    nav{background:var(--color-nav-bg);color:var(--color-nav-text);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+    .nav-brand{font-weight:700;font-size:1.1rem;display:flex;align-items:center;gap:0.5rem;}
+    .trade-badge{font-size:0.65rem;background:var(--color-accent);color:#1e293b;padding:2px 8px;border-radius:99px;font-weight:700;}
+    .nav-links{display:flex;gap:1.5rem;font-size:0.9rem;}
+    .nav-links a{color:#94a3b8;text-decoration:none;}
+    .nav-links a:hover,.nav-links a.active{color:#fff;}
+    .nav-right{display:flex;align-items:center;gap:1rem;}
+    .nav-user{font-size:0.85rem;color:#94a3b8;}
+    .btn-logout{background:none;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;font-size:0.8rem;}
+    main{max-width:1200px;margin:2rem auto;padding:0 1.5rem;}
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+    h2{font-size:1.4rem;}
+    .tabs{display:flex;gap:0;border-bottom:2px solid #e2e8f0;margin-bottom:1.25rem;}
+    .tab{padding:0.6rem 1.25rem;cursor:pointer;font-size:0.9rem;color:#64748b;border-bottom:2px solid transparent;margin-bottom:-2px;}
+    .tab.active{color:var(--color-primary);border-bottom-color:var(--color-primary);font-weight:600;}
+    .filters{display:flex;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap;}
+    .filters input,.filters select{padding:0.5rem 0.8rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.875rem;background:#fff;flex:1;min-width:160px;}
+    .btn-primary{padding:0.5rem 1.1rem;background:var(--color-primary);color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;font-weight:600;}
+    .card{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.07);overflow:hidden;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{padding:0.75rem 1.25rem;text-align:left;font-size:0.875rem;}
+    th{background:#f8fafc;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;}
+    td{border-bottom:1px solid #f1f5f9;}
+    tr:hover td{background:#f8fafc;cursor:pointer;}
+    .badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:0.75rem;font-weight:600;}
+    .badge-draft{background:#f1f5f9;color:#64748b;}
+    .badge-sent{background:#dbeafe;color:#1d4ed8;}
+    .badge-approved{background:#dcfce7;color:#15803d;}
+    .badge-paid{background:#dcfce7;color:#15803d;}
+    .badge-unpaid{background:#fef3c7;color:#b45309;}
+    .badge-overdue{background:#fee2e2;color:#b91c1c;}
+    .badge-void{background:#f1f5f9;color:#94a3b8;}
+    .amount{font-weight:600;}
+    .empty{text-align:center;padding:3rem;color:#94a3b8;}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">
+    <span id="nav-company">Dashboard</span>
+    <span class="trade-badge" id="nav-trade">TRADE</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html">Customers</a>
+    <a href="dispatch.html">Dispatch</a>
+    <a href="schedule.html">Schedule</a>
+    <a href="team.html" id="nav-team-label">Team</a>
+    <a href="pricebook.html">Pricebook</a>
+    <a href="quote-invoice.html" class="active">Quotes &amp; Invoices</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user-name"></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<main>
+  <div class="page-header">
+    <h2>Quotes &amp; Invoices</h2>
+    <div style="display:flex;gap:0.75rem;">
+      <button class="btn-primary" onclick="location.href='job.html'">+ From Job</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('quotes')">Quotes</div>
+    <div class="tab" onclick="showTab('invoices')">Invoices</div>
+  </div>
+  <div class="filters">
+    <input type="text" id="search-input" placeholder="Search customer or #..." oninput="filterList()" />
+    <select id="status-filter" onchange="filterList()"><option value="">All Statuses</option></select>
+  </div>
+  <div class="card">
+    <table>
+      <thead id="table-head"></thead>
+      <tbody id="list-tbody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</main>
+<script>
+const API='';let brand={};let token=localStorage.getItem('token');let allQuotes=[];let allInvoices=[];let currentTab='quotes';
+async function loadBrand(){try{const r=await fetch(API+'/api/brand');brand=await r.json();document.title=brand.companyName+' - Quotes &amp; Invoices';document.getElementById('nav-company').textContent=brand.companyName;document.getElementById('nav-trade').textContent=(brand.tradeType||'trade').toUpperCase();document.getElementById('nav-team-label').textContent=(brand.technicianLabel||'Technician')+'s';if(brand.colors){const s=document.documentElement.style;if(brand.colors.primary)s.setProperty('--color-primary',brand.colors.primary);if(brand.colors.primaryDark)s.setProperty('--color-primary-dark',brand.colors.primaryDark);if(brand.colors.navBg)s.setProperty('--color-nav-bg',brand.colors.navBg);if(brand.colors.navText)s.setProperty('--color-nav-text',brand.colors.navText);if(brand.colors.accent)s.setProperty('--color-accent',brand.colors.accent);}}catch(e){console.warn(e);}}
+function logout(){localStorage.removeItem('token');location.href='index.html';}
+async function init(){await loadBrand();if(!token){location.href='index.html';return;}const r=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});if(!r.ok){location.href='index.html';return;}const me=await r.json();document.getElementById('nav-user-name').textContent=me.name||me.email;await loadQuotes();await loadInvoices();showTab('quotes');}
+async function loadQuotes(){try{const r=await fetch(API+'/api/quotes',{headers:{Authorization:'Bearer '+token}});allQuotes=await r.json();}catch(e){console.warn(e);}}
+async function loadInvoices(){try{const r=await fetch(API+'/api/invoices',{headers:{Authorization:'Bearer '+token}});allInvoices=await r.json();}catch(e){console.warn(e);}}
+function showTab(tab){currentTab=tab;document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['quotes','invoices'][i]===tab));const sel=document.getElementById('status-filter');sel.innerHTML='<option value="">All Statuses</option>';const statuses=tab==='quotes'?['draft','sent','approved','declined']:['unpaid','paid','overdue','void'];statuses.forEach(s=>{sel.innerHTML+='<option value="'+s+'">'+s.charAt(0).toUpperCase()+s.slice(1)+'</option>';});if(tab==='quotes'){document.getElementById('table-head').innerHTML='<tr><th>#</th><th>Customer</th><th>Job</th><th>Status</th><th>Amount</th><th>Created</th></tr>';}else{document.getElementById('table-head').innerHTML='<tr><th>#</th><th>Customer</th><th>Job</th><th>Status</th><th>Amount</th><th>Due Date</th></tr>';}filterList();}
+function filterList(){const q=document.getElementById('search-input').value.toLowerCase();const st=document.getElementById('status-filter').value;const list=currentTab==='quotes'?allQuotes:allInvoices;const filtered=list.filter(i=>(!q||(i.customer&&i.customer.name.toLowerCase().includes(q))||String(i.id).includes(q))&&(!st||i.status===st));renderList(filtered);}
+function renderList(list){const tb=document.getElementById('list-tbody');if(!list.length){tb.innerHTML='<tr><td colspan="6" class="empty">No records found.</td></tr>';return;}const isQuote=currentTab==='quotes';tb.innerHTML=list.map(i=>'<tr onclick="location.href='job.html?jobId='+(i.jobId||'')+''" ><td>#'+i.id+'</td><td>'+(i.customer?i.customer.name:'-')+'</td><td>'+(i.jobId?'Job #'+i.jobId:'-')+'</td><td><span class="badge badge-'+i.status+'">'+i.status+'</span></td><td class="amount">$'+Number(i.total||0).toFixed(2)+'</td><td>'+(isQuote?(i.createdAt?new Date(i.createdAt).toLocaleDateString():'-'):(i.dueDate?new Date(i.dueDate).toLocaleDateString():'-'))+'</td></tr>').join('');}
+init();
+</script>
+</body>
+</html>
