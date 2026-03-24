@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Team</title>
+  <style>
+    :root{--color-primary:#2563eb;--color-primary-dark:#1d4ed8;--color-nav-bg:#1e293b;--color-nav-text:#f1f5f9;--color-accent:#f59e0b;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:system-ui,sans-serif;background:#f8fafc;color:#1e293b;}
+    nav{background:var(--color-nav-bg);color:var(--color-nav-text);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+    .nav-brand{font-weight:700;font-size:1.1rem;display:flex;align-items:center;gap:0.5rem;}
+    .trade-badge{font-size:0.65rem;background:var(--color-accent);color:#1e293b;padding:2px 8px;border-radius:99px;font-weight:700;}
+    .nav-links{display:flex;gap:1.5rem;font-size:0.9rem;}
+    .nav-links a{color:#94a3b8;text-decoration:none;}
+    .nav-links a:hover,.nav-links a.active{color:#fff;}
+    .nav-right{display:flex;align-items:center;gap:1rem;}
+    .nav-user{font-size:0.85rem;color:#94a3b8;}
+    .btn-logout{background:none;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;font-size:0.8rem;}
+    main{max-width:1100px;margin:2rem auto;padding:0 1.5rem;}
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
+    h2{font-size:1.4rem;}
+    .btn-primary{padding:0.5rem 1.1rem;background:var(--color-primary);color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;font-weight:600;}
+    .tabs{display:flex;gap:0;border-bottom:2px solid #e2e8f0;margin-bottom:1.5rem;}
+    .tab{padding:0.6rem 1.25rem;cursor:pointer;font-size:0.9rem;color:#64748b;border-bottom:2px solid transparent;margin-bottom:-2px;}
+    .tab.active{color:var(--color-primary);border-bottom-color:var(--color-primary);font-weight:600;}
+    .team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.25rem;}
+    .team-card{background:#fff;border-radius:10px;padding:1.5rem;box-shadow:0 1px 4px rgba(0,0,0,0.07);display:flex;flex-direction:column;gap:0.5rem;}
+    .team-card .name{font-weight:700;font-size:1rem;}
+    .team-card .role{font-size:0.8rem;color:#64748b;background:#f1f5f9;display:inline-block;padding:2px 8px;border-radius:99px;}
+    .team-card .email{font-size:0.85rem;color:#475569;}
+    .team-card .phone{font-size:0.85rem;color:#475569;}
+    .team-card .stats{font-size:0.8rem;color:#94a3b8;margin-top:0.25rem;}
+    .badge-active{color:#15803d;background:#dcfce7;padding:2px 8px;border-radius:99px;font-size:0.75rem;font-weight:600;}
+    .badge-inactive{color:#b91c1c;background:#fee2e2;padding:2px 8px;border-radius:99px;font-size:0.75rem;font-weight:600;}
+    .empty{text-align:center;padding:3rem;color:#94a3b8;}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:#fff;border-radius:12px;padding:2rem;width:100%;max-width:460px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+    .modal h3{font-size:1.1rem;margin-bottom:1.25rem;}
+    .form-group{margin-bottom:1rem;}
+    .form-group label{display:block;font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:0.4rem;}
+    .form-group input,.form-group select{width:100%;padding:0.6rem 0.9rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;}
+    .modal-footer{display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.5rem;}
+    .btn-cancel{padding:0.5rem 1rem;background:#f1f5f9;color:#475569;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">
+    <span id="nav-company">Dashboard</span>
+    <span class="trade-badge" id="nav-trade">TRADE</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html">Customers</a>
+    <a href="dispatch.html">Dispatch</a>
+    <a href="schedule.html">Schedule</a>
+    <a href="team.html" id="nav-team-label" class="active">Team</a>
+    <a href="pricebook.html">Pricebook</a>
+    <a href="quote-invoice.html">Quotes &amp; Invoices</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user-name"></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<main>
+  <div class="page-header">
+    <h2 id="page-title">Team</h2>
+    <button class="btn-primary" onclick="openInviteModal()">+ Invite Member</button>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('all')">All Members</div>
+    <div class="tab" onclick="showTab('technicians')" id="tab-tech">Technicians</div>
+    <div class="tab" onclick="showTab('admins')">Admins</div>
+  </div>
+  <div class="team-grid" id="team-grid"><div class="empty">Loading...</div></div>
+</main>
+
+<!-- Invite Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>Invite Team Member</h3>
+    <div class="form-group"><label>Email *</label><input type="email" id="f-email" placeholder="team@example.com" /></div>
+    <div class="form-group"><label>Name *</label><input type="text" id="f-name" placeholder="Full name" /></div>
+    <div class="form-group"><label>Role</label>
+      <select id="f-role">
+        <option value="technician" id="opt-tech">Technician</option>
+        <option value="admin">Admin</option>
+        <option value="office">Office</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Phone</label><input type="tel" id="f-phone" placeholder="Phone number" /></div>
+    <div id="modal-error" style="color:#ef4444;font-size:0.85rem;margin-bottom:0.75rem;display:none;"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="sendInvite()">Send Invite</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='';let brand={};let token=localStorage.getItem('token');let allUsers=[];let currentTab='all';
+async function loadBrand(){try{const r=await fetch(API+'/api/brand');brand=await r.json();document.title=brand.companyName+' - Team';document.getElementById('nav-company').textContent=brand.companyName;document.getElementById('nav-trade').textContent=(brand.tradeType||'trade').toUpperCase();const tl=brand.technicianLabel||'Technician';document.getElementById('nav-team-label').textContent=tl+'s';document.getElementById('page-title').textContent=tl+' & Team';document.getElementById('tab-tech').textContent=tl+'s';document.getElementById('opt-tech').textContent=tl;if(brand.colors){const s=document.documentElement.style;if(brand.colors.primary)s.setProperty('--color-primary',brand.colors.primary);if(brand.colors.primaryDark)s.setProperty('--color-primary-dark',brand.colors.primaryDark);if(brand.colors.navBg)s.setProperty('--color-nav-bg',brand.colors.navBg);if(brand.colors.navText)s.setProperty('--color-nav-text',brand.colors.navText);if(brand.colors.accent)s.setProperty('--color-accent',brand.colors.accent);}}catch(e){console.warn(e);}}
+function logout(){localStorage.removeItem('token');location.href='index.html';}
+async function init(){await loadBrand();if(!token){location.href='index.html';return;}const r=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});if(!r.ok){location.href='index.html';return;}const me=await r.json();document.getElementById('nav-user-name').textContent=me.name||me.email;loadTeam();}
+async function loadTeam(){try{const r=await fetch(API+'/api/users',{headers:{Authorization:'Bearer '+token}});allUsers=await r.json();renderTeam();}catch(e){document.getElementById('team-grid').innerHTML='<div class="empty" style="color:#ef4444">Failed to load team.</div>';}}
+function showTab(tab){currentTab=tab;document.querySelectorAll('.tab').forEach((t,i)=>{t.classList.toggle('active',['all','technicians','admins'][i]===tab);});renderTeam();}
+function renderTeam(){const filtered=allUsers.filter(u=>currentTab==='all'||(currentTab==='technicians'&&u.role==='technician')||(currentTab==='admins'&&u.role==='admin'));const grid=document.getElementById('team-grid');if(!filtered.length){grid.innerHTML='<div class="empty">No members in this group.</div>';return;}grid.innerHTML=filtered.map(u=>'<div class="team-card"><div class="name">'+u.name+'</div><div><span class="role">'+u.role+'</span> '+(u.active?'<span class="badge-active">Active</span>':'<span class="badge-inactive">Inactive</span>')+'</div>'+(u.email?'<div class="email">'+u.email+'</div>':'')+(u.phone?'<div class="phone">'+u.phone+'</div>':'')+'<div class="stats">Jobs completed: '+(u._count?u._count.jobs||0:0)+'</div></div>').join('');}
+function openInviteModal(){document.getElementById('modal').classList.add('open');}
+function closeModal(){document.getElementById('modal').classList.remove('open');document.getElementById('modal-error').style.display='none';}
+async function sendInvite(){const email=document.getElementById('f-email').value.trim();const name=document.getElementById('f-name').value.trim();if(!email||!name){showErr('Email and name are required');return;}const body={email,name,role:document.getElementById('f-role').value,phone:document.getElementById('f-phone').value.trim()};try{const r=await fetch(API+'/api/invites',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed to invite');closeModal();alert('Invite sent to '+email);}catch(e){showErr(e.message);}}
+function showErr(msg){const el=document.getElementById('modal-error');el.textContent=msg;el.style.display='block';}
+init();
+</script>
+</body>
+</html>
