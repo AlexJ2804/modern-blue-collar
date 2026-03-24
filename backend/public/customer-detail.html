@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customer Detail</title>
+  <style>
+    :root{--color-primary:#2563eb;--color-primary-dark:#1d4ed8;--color-nav-bg:#1e293b;--color-nav-text:#f1f5f9;--color-accent:#f59e0b;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:system-ui,sans-serif;background:#f8fafc;color:#1e293b;}
+    nav{background:var(--color-nav-bg);color:var(--color-nav-text);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+    .nav-brand{font-weight:700;font-size:1.1rem;display:flex;align-items:center;gap:0.5rem;}
+    .trade-badge{font-size:0.65rem;background:var(--color-accent);color:#1e293b;padding:2px 8px;border-radius:99px;font-weight:700;}
+    .nav-links{display:flex;gap:1.5rem;font-size:0.9rem;}
+    .nav-links a{color:#94a3b8;text-decoration:none;}
+    .nav-links a:hover,.nav-links a.active{color:#fff;}
+    .nav-right{display:flex;align-items:center;gap:1rem;}
+    .nav-user{font-size:0.85rem;color:#94a3b8;}
+    .btn-logout{background:none;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;font-size:0.8rem;}
+    main{max-width:1000px;margin:2rem auto;padding:0 1.5rem;}
+    .back-link{color:#64748b;font-size:0.875rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.3rem;margin-bottom:1.25rem;}
+    .back-link:hover{color:var(--color-primary);}
+    .customer-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;}
+    .customer-header h2{font-size:1.4rem;}
+    .btn-primary{padding:0.5rem 1.1rem;background:var(--color-primary);color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;font-weight:600;}
+    .btn-sm{padding:0.4rem 0.9rem;background:var(--color-primary);color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;font-weight:600;}
+    .btn-outline{padding:0.4rem 0.9rem;background:#fff;color:#374151;border:1px solid #cbd5e1;border-radius:6px;font-size:0.85rem;cursor:pointer;}
+    .grid-2{display:grid;grid-template-columns:1fr 2fr;gap:1.5rem;}
+    .card{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.07);padding:1.5rem;margin-bottom:1.25rem;}
+    .card h3{font-size:1rem;font-weight:600;margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #f1f5f9;}
+    .info-row{display:flex;justify-content:space-between;padding:0.4rem 0;font-size:0.875rem;border-bottom:1px solid #f8fafc;}
+    .info-row:last-child{border-bottom:none;}
+    .info-label{color:#64748b;font-weight:500;}
+    .edit-field{width:100%;padding:0.5rem 0.7rem;border:1px solid #cbd5e1;border-radius:6px;font-size:0.875rem;margin-top:0.25rem;}
+    .badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:0.75rem;font-weight:600;}
+    .badge-open{background:#dbeafe;color:#1d4ed8;}
+    .badge-scheduled{background:#fef3c7;color:#b45309;}
+    .badge-completed{background:#dcfce7;color:#15803d;}
+    .badge-cancelled{background:#fee2e2;color:#b91c1c;}
+    .badge-invoiced{background:#ede9fe;color:#6d28d9;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{padding:0.6rem 0.75rem;text-align:left;font-size:0.85rem;}
+    th{background:#f8fafc;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;}
+    td{border-bottom:1px solid #f8fafc;}
+    tr:hover td{background:#f8fafc;cursor:pointer;}
+    .empty{text-align:center;padding:2rem;color:#94a3b8;}
+    .action-bar{display:flex;gap:0.75rem;flex-wrap:wrap;}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">
+    <span id="nav-company">Dashboard</span>
+    <span class="trade-badge" id="nav-trade">TRADE</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html" class="active">Customers</a>
+    <a href="dispatch.html">Dispatch</a>
+    <a href="schedule.html">Schedule</a>
+    <a href="team.html" id="nav-team-label">Team</a>
+    <a href="pricebook.html">Pricebook</a>
+    <a href="quote-invoice.html">Quotes &amp; Invoices</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user-name"></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<main>
+  <a href="customers.html" class="back-link">&larr; Back to Customers</a>
+  <div id="customer-content" style="display:none;">
+    <div class="customer-header">
+      <h2 id="customer-name">Customer</h2>
+      <div class="action-bar">
+        <button class="btn-sm" onclick="saveCustomer()">Save Changes</button>
+        <button class="btn-sm" onclick="location.href='dispatch.html'">+ New Job</button>
+        <button class="btn-outline" onclick="sendSMS()">Send SMS</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <h3>Contact Info</h3>
+          <div class="info-row"><span class="info-label">Name</span></div>
+          <input class="edit-field" type="text" id="e-name" placeholder="Full name" />
+          <div class="info-row" style="margin-top:0.75rem;"><span class="info-label">Phone</span></div>
+          <input class="edit-field" type="tel" id="e-phone" placeholder="Phone number" />
+          <div class="info-row" style="margin-top:0.75rem;"><span class="info-label">Email</span></div>
+          <input class="edit-field" type="email" id="e-email" placeholder="Email address" />
+          <div class="info-row" style="margin-top:0.75rem;"><span class="info-label">Address</span></div>
+          <input class="edit-field" type="text" id="e-address" placeholder="Street address" />
+          <div class="info-row" style="margin-top:0.5rem;"><span class="info-label">City</span></div>
+          <input class="edit-field" type="text" id="e-city" placeholder="City" />
+          <div class="info-row" style="margin-top:0.5rem;"><span class="info-label">State / ZIP</span></div>
+          <div style="display:flex;gap:0.5rem;margin-top:0.25rem;">
+            <input class="edit-field" type="text" id="e-state" placeholder="ST" maxlength="2" style="width:60px;" />
+            <input class="edit-field" type="text" id="e-zip" placeholder="ZIP" style="flex:1;" />
+          </div>
+          <div class="info-row" style="margin-top:0.75rem;"><span class="info-label">Notes</span></div>
+          <input class="edit-field" type="text" id="e-notes" placeholder="Optional notes" />
+        </div>
+        <div class="card">
+          <h3>Stats</h3>
+          <div class="info-row"><span class="info-label">Total Jobs</span><span id="stat-jobs">-</span></div>
+          <div class="info-row"><span class="info-label">Open Jobs</span><span id="stat-open">-</span></div>
+          <div class="info-row"><span class="info-label">Total Invoiced</span><span id="stat-invoiced">-</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h3>Job History</h3>
+          <table>
+            <thead><tr><th>#</th><th>Type</th><th id="tech-col">Technician</th><th>Status</th><th>Date</th></tr></thead>
+            <tbody id="jobs-tbody"><tr><td colspan="5" class="empty">No jobs yet.</td></tr></tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h3>Invoices</h3>
+          <table>
+            <thead><tr><th>#</th><th>Status</th><th>Amount</th><th>Due</th></tr></thead>
+            <tbody id="invoices-tbody"><tr><td colspan="4" class="empty">No invoices.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="loading-msg" style="text-align:center;padding:4rem;color:#94a3b8;">Loading customer...</div>
+  <div id="error-msg" style="text-align:center;padding:4rem;color:#ef4444;display:none;">Customer not found.</div>
+</main>
+<script>
+const API='';let brand={};let token=localStorage.getItem('token');
+const custId=new URLSearchParams(window.location.search).get('id');
+async function loadBrand(){try{const r=await fetch(API+'/api/brand');brand=await r.json();document.title=brand.companyName+' - Customer';document.getElementById('nav-company').textContent=brand.companyName;document.getElementById('nav-trade').textContent=(brand.tradeType||'trade').toUpperCase();const tl=brand.technicianLabel||'Technician';document.getElementById('nav-team-label').textContent=tl+'s';document.getElementById('tech-col').textContent=tl;if(brand.colors){const s=document.documentElement.style;if(brand.colors.primary)s.setProperty('--color-primary',brand.colors.primary);if(brand.colors.primaryDark)s.setProperty('--color-primary-dark',brand.colors.primaryDark);if(brand.colors.navBg)s.setProperty('--color-nav-bg',brand.colors.navBg);if(brand.colors.navText)s.setProperty('--color-nav-text',brand.colors.navText);if(brand.colors.accent)s.setProperty('--color-accent',brand.colors.accent);}}catch(e){console.warn(e);}}
+function logout(){localStorage.removeItem('token');location.href='index.html';}
+async function init(){await loadBrand();if(!token){location.href='index.html';return;}if(!custId){document.getElementById('loading-msg').style.display='none';document.getElementById('error-msg').style.display='block';return;}const mr=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});if(!mr.ok){location.href='index.html';return;}const me=await mr.json();document.getElementById('nav-user-name').textContent=me.name||me.email;loadCustomer();}
+async function loadCustomer(){try{const r=await fetch(API+'/api/customers/'+custId,{headers:{Authorization:'Bearer '+token}});if(!r.ok)throw new Error('not found');const c=await r.json();document.getElementById('loading-msg').style.display='none';document.getElementById('customer-content').style.display='block';document.getElementById('customer-name').textContent=c.name;document.title=(brand.companyName||'')+' - '+c.name;document.getElementById('e-name').value=c.name||'';document.getElementById('e-phone').value=c.phone||'';document.getElementById('e-email').value=c.email||'';document.getElementById('e-address').value=c.address||'';document.getElementById('e-city').value=c.city||'';document.getElementById('e-state').value=c.state||'';document.getElementById('e-zip').value=c.zip||'';document.getElementById('e-notes').value=c.notes||'';if(c.jobs){const open=c.jobs.filter(j=>j.status==='open'||j.status==='scheduled').length;document.getElementById('stat-jobs').textContent=c.jobs.length;document.getElementById('stat-open').textContent=open;const tb=document.getElementById('jobs-tbody');if(c.jobs.length){tb.innerHTML=c.jobs.map(j=>'<tr onclick="location.href='job.html?id='+j.id+''"><td>#'+j.id+'</td><td>'+(j.jobType||'-')+'</td><td>'+(j.technician?j.technician.name:'-')+'</td><td><span class="badge badge-'+j.status+'">'+j.status+'</span></td><td>'+(j.scheduledDate?new Date(j.scheduledDate).toLocaleDateString():'-')+'</td></tr>').join('');}else{tb.innerHTML='<tr><td colspan="5" class="empty">No jobs yet.</td></tr>';}}if(c.invoices){const total=c.invoices.reduce((s,i)=>s+Number(i.total||0),0);document.getElementById('stat-invoiced').textContent='$'+total.toFixed(2);const tb=document.getElementById('invoices-tbody');if(c.invoices.length){tb.innerHTML=c.invoices.map(i=>'<tr><td>#'+i.id+'</td><td><span class="badge badge-'+(i.status||'unpaid')+'">'+i.status+'</span></td><td>$'+Number(i.total||0).toFixed(2)+'</td><td>'+(i.dueDate?new Date(i.dueDate).toLocaleDateString():'-')+'</td></tr>').join('');}else{tb.innerHTML='<tr><td colspan="4" class="empty">No invoices.</td></tr>';}}}catch(e){document.getElementById('loading-msg').style.display='none';document.getElementById('error-msg').style.display='block';}}
+async function saveCustomer(){const body={name:document.getElementById('e-name').value.trim(),phone:document.getElementById('e-phone').value.trim(),email:document.getElementById('e-email').value.trim(),address:document.getElementById('e-address').value.trim(),city:document.getElementById('e-city').value.trim(),state:document.getElementById('e-state').value.trim().toUpperCase(),zip:document.getElementById('e-zip').value.trim(),notes:document.getElementById('e-notes').value.trim()};try{const r=await fetch(API+'/api/customers/'+custId,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});if(!r.ok)throw new Error('Failed');document.getElementById('customer-name').textContent=body.name;alert('Customer updated.');}catch(e){alert('Failed to save: '+e.message);}}
+async function sendSMS(){try{const r=await fetch(API+'/api/sms/customer/'+custId,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({type:'general'})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');alert('SMS sent!');}catch(e){alert('SMS failed: '+e.message);}}
+init();
+</script>
+</body>
+</html>
