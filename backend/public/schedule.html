@@ -20,24 +20,45 @@
     main{max-width:1200px;margin:2rem auto;padding:0 1.5rem;}
     .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:0.75rem;}
     h2{font-size:1.4rem;}
-    .week-nav{display:flex;align-items:center;gap:1rem;}
+    .controls{display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;}
+    .view-toggle{display:flex;border:1px solid #cbd5e1;border-radius:8px;overflow:hidden;}
+    .view-toggle button{padding:0.4rem 1rem;background:#fff;border:none;cursor:pointer;font-size:0.85rem;font-weight:500;color:#64748b;}
+    .view-toggle button.active{background:var(--color-primary);color:#fff;}
     .btn-nav{padding:0.4rem 0.9rem;background:#fff;border:1px solid #cbd5e1;border-radius:8px;cursor:pointer;font-size:0.875rem;}
     .btn-nav:hover{background:#f1f5f9;}
-    .week-label{font-weight:600;font-size:0.95rem;min-width:200px;text-align:center;}
+    .date-picker{padding:0.4rem 0.7rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.875rem;}
+    .nav-label{font-weight:600;font-size:0.95rem;min-width:180px;text-align:center;}
+    .filters{display:flex;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap;}
+    .filters select{padding:0.5rem 0.8rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.875rem;background:#fff;}
+    /* Week/Month grid */
     .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:0;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.07);}
     .day-header{background:#f8fafc;padding:0.75rem;text-align:center;border-bottom:1px solid #e2e8f0;border-right:1px solid #e2e8f0;font-size:0.8rem;font-weight:600;color:#64748b;}
     .day-header:last-child{border-right:none;}
-    .day-cell{min-height:140px;padding:0.5rem;border-right:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;vertical-align:top;}
+    .day-cell{min-height:120px;padding:0.5rem;border-right:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9;vertical-align:top;position:relative;}
     .day-cell:last-child{border-right:none;}
+    .day-cell.other-month{background:#fafbfc;opacity:0.5;}
     .day-num{font-size:0.8rem;font-weight:600;color:#94a3b8;margin-bottom:0.4rem;}
-    .day-num.today{color:var(--color-primary);}
-    .job-chip{background:#dbeafe;color:#1d4ed8;border-radius:6px;padding:3px 7px;font-size:0.75rem;margin-bottom:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .job-chip:hover{background:#bfdbfe;}
+    .day-num.today{color:#fff;background:var(--color-primary);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;}
+    .job-chip{border-radius:6px;padding:3px 7px;font-size:0.75rem;margin-bottom:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:4px;}
+    .job-chip:hover{filter:brightness(0.95);}
+    .job-chip.pending{background:#dbeafe;color:#1d4ed8;}
     .job-chip.scheduled{background:#fef3c7;color:#b45309;}
+    .job-chip.in-progress{background:#fed7aa;color:#c2410c;}
     .job-chip.completed{background:#dcfce7;color:#15803d;}
+    .job-chip.cancelled{background:#fee2e2;color:#b91c1c;}
+    .presence-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;flex-shrink:0;}
     .no-jobs{font-size:0.75rem;color:#cbd5e1;}
-    .filters{display:flex;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap;}
-    .filters select{padding:0.5rem 0.8rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.875rem;background:#fff;}
+    /* Day view */
+    .day-view{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.07);overflow:hidden;}
+    .day-view .time-slot{display:flex;border-bottom:1px solid #f1f5f9;min-height:60px;}
+    .day-view .time-label{width:80px;padding:0.5rem;font-size:0.8rem;color:#94a3b8;font-weight:500;text-align:right;border-right:1px solid #f1f5f9;flex-shrink:0;}
+    .day-view .time-content{flex:1;padding:0.5rem;display:flex;flex-wrap:wrap;gap:0.5rem;align-items:flex-start;}
+    .day-job{background:#dbeafe;color:#1d4ed8;border-radius:8px;padding:0.5rem 0.75rem;font-size:0.85rem;cursor:pointer;display:flex;align-items:center;gap:6px;}
+    .day-job:hover{background:#bfdbfe;}
+    .day-job.scheduled{background:#fef3c7;color:#b45309;}
+    .day-job.in-progress{background:#fed7aa;color:#c2410c;}
+    .day-job.completed{background:#dcfce7;color:#15803d;}
+    .day-job .job-tech{font-size:0.75rem;color:#64748b;margin-left:0.5rem;}
   </style>
 </head>
 <body>
@@ -63,38 +84,162 @@
 <main>
   <div class="page-header">
     <h2>Schedule</h2>
-    <div class="week-nav">
-      <button class="btn-nav" onclick="changeWeek(-1)">&larr; Prev</button>
-      <span class="week-label" id="week-label">Week</span>
-      <button class="btn-nav" onclick="changeWeek(1)">Next &rarr;</button>
+    <div class="controls">
+      <div class="view-toggle">
+        <button onclick="setView('day')" id="btn-day">Day</button>
+        <button onclick="setView('week')" id="btn-week" class="active">Week</button>
+        <button onclick="setView('month')" id="btn-month">Month</button>
+      </div>
+      <button class="btn-nav" onclick="navigate(-1)">&larr; Prev</button>
+      <span class="nav-label" id="nav-label">Week</span>
+      <button class="btn-nav" onclick="navigate(1)">Next &rarr;</button>
       <button class="btn-nav" onclick="goToday()">Today</button>
+      <input type="date" class="date-picker" id="date-picker" onchange="jumpToDate(this.value)" />
     </div>
   </div>
   <div class="filters">
-    <select id="tech-filter" onchange="renderCalendar()"><option value="">All <span id="tl">Technicians</span></option></select>
+    <select id="tech-filter" onchange="render()"><option value="">All Technicians</option></select>
   </div>
-  <div class="calendar-grid" id="calendar">
-    <div class="day-header">Sun</div>
-    <div class="day-header">Mon</div>
-    <div class="day-header">Tue</div>
-    <div class="day-header">Wed</div>
-    <div class="day-header">Thu</div>
-    <div class="day-header">Fri</div>
-    <div class="day-header">Sat</div>
-  </div>
+  <div id="calendar-container"></div>
 </main>
+<script src="/socket.io/socket.io.js"></script>
 <script>
-const API='';let brand={};let token=localStorage.getItem('token');let allJobs=[];let weekOffset=0;
+const API='';let brand={};let token=localStorage.getItem('token');let allJobs=[];
+let currentView='week';let offset=0;let presenceData={};
 const today=new Date();today.setHours(0,0,0,0);
+
+// Socket.io for presence dots
+let socket;
+try { socket = io(); } catch(e) { console.warn('Socket.io not available'); }
+
 async function loadBrand(){try{const r=await fetch(API+'/api/brand');brand=await r.json();document.title=brand.companyName+' - Schedule';document.getElementById('nav-company').textContent=brand.companyName;document.getElementById('nav-trade').textContent=(brand.tradeType||'trade').toUpperCase();const tl=brand.technicianLabel||'Technician';document.getElementById('nav-team-label').textContent=tl+'s';if(brand.colors){const s=document.documentElement.style;if(brand.colors.primary)s.setProperty('--color-primary',brand.colors.primary);if(brand.colors.primaryDark)s.setProperty('--color-primary-dark',brand.colors.primaryDark);if(brand.colors.navBg)s.setProperty('--color-nav-bg',brand.colors.navBg);if(brand.colors.navText)s.setProperty('--color-nav-text',brand.colors.navText);if(brand.colors.accent)s.setProperty('--color-accent',brand.colors.accent);}}catch(e){console.warn(e);}}
 function logout(){localStorage.removeItem('token');location.href='index.html';}
-async function init(){await loadBrand();if(!token){location.href='index.html';return;}const r=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});if(!r.ok){location.href='index.html';return;}const me=await r.json();document.getElementById('nav-user-name').textContent=me.name||me.email;await loadTechnicians();await loadJobs();renderCalendar();}
-async function loadTechnicians(){try{const r=await fetch(API+'/api/users/technicians',{headers:{Authorization:'Bearer '+token}});const techs=await r.json();const sel=document.getElementById('tech-filter');techs.forEach(t=>{sel.innerHTML+='<option value="'+t.id+'">'+t.name+'</option>';});}catch(e){console.warn(e);}}
+
+async function init(){
+  await loadBrand();
+  if(!token){location.href='index.html';return;}
+  const r=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});
+  if(!r.ok){location.href='index.html';return;}
+  const me=await r.json();
+  document.getElementById('nav-user-name').textContent=me.firstName+' '+me.lastName;
+  await loadTechnicians();
+  await loadJobs();
+  await loadPresence();
+  render();
+}
+
+async function loadTechnicians(){try{const r=await fetch(API+'/api/users',{headers:{Authorization:'Bearer '+token}});const users=await r.json();const techs=Array.isArray(users)?users.filter(u=>u.role==='technician'):[];const sel=document.getElementById('tech-filter');techs.forEach(t=>{sel.innerHTML+='<option value="'+t.id+'">'+t.firstName+' '+t.lastName+'</option>';});}catch(e){console.warn(e);}}
 async function loadJobs(){try{const r=await fetch(API+'/api/jobs',{headers:{Authorization:'Bearer '+token}});allJobs=(await r.json()).filter(j=>j.scheduledDate);}catch(e){console.warn(e);}}
-function getWeekStart(){const d=new Date(today);const dow=d.getDay();d.setDate(d.getDate()-dow+(weekOffset*7));return d;}
-function changeWeek(dir){weekOffset+=dir;renderCalendar();}
-function goToday(){weekOffset=0;renderCalendar();}
-function renderCalendar(){const ws=getWeekStart();const we=new Date(ws);we.setDate(we.getDate()+6);const opts={month:'short',day:'numeric'};document.getElementById('week-label').textContent=ws.toLocaleDateString(undefined,opts)+' - '+we.toLocaleDateString(undefined,opts);const techId=document.getElementById('tech-filter').value;const cal=document.getElementById('calendar');const headers=Array.from(cal.querySelectorAll('.day-header'));cal.innerHTML='';headers.forEach(h=>cal.appendChild(h));for(let i=0;i<7;i++){const d=new Date(ws);d.setDate(d.getDate()+i);const cell=document.createElement('div');cell.className='day-cell';const isToday=d.toDateString()===today.toDateString();const dayNum=document.createElement('div');dayNum.className='day-num'+(isToday?' today':'');dayNum.textContent=d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});cell.appendChild(dayNum);const dayJobs=allJobs.filter(j=>{const jd=new Date(j.scheduledDate);jd.setHours(0,0,0,0);return jd.toDateString()===d.toDateString()&&(!techId||j.technicianId==techId);});if(dayJobs.length){dayJobs.forEach(j=>{const chip=document.createElement('div');chip.className='job-chip '+(j.status||'open');chip.textContent='#'+j.id+' '+(j.customer?j.customer.name:j.jobType||'Job');chip.title=j.jobType+' - '+(j.technician?j.technician.name:'Unassigned')+' - '+j.status;chip.onclick=()=>location.href='job.html?id='+j.id;cell.appendChild(chip);});}else{const empty=document.createElement('div');empty.className='no-jobs';empty.textContent='No jobs';cell.appendChild(empty);}cal.appendChild(cell);}}
+async function loadPresence(){try{const r=await fetch(API+'/api/presence');presenceData=await r.json();}catch(e){console.warn(e);}}
+
+function setView(v){currentView=v;offset=0;document.querySelectorAll('.view-toggle button').forEach(b=>b.classList.remove('active'));document.getElementById('btn-'+v).classList.add('active');render();}
+function navigate(dir){offset+=dir;render();}
+function goToday(){offset=0;render();}
+function jumpToDate(val){if(!val)return;const d=new Date(val+'T00:00:00');const diff=Math.round((d-today)/(86400000));if(currentView==='day')offset=diff;else if(currentView==='week')offset=Math.floor(diff/7);else offset=Math.floor(diff/30);render();}
+
+function getFilteredJobs(){const techId=document.getElementById('tech-filter').value;return allJobs.filter(j=>!techId||j.technicianId==techId);}
+
+function hasPresence(jobId){return presenceData[String(jobId)]&&Object.keys(presenceData[String(jobId)]).length>0;}
+
+function render(){
+  const container=document.getElementById('calendar-container');
+  if(currentView==='day') renderDay(container);
+  else if(currentView==='week') renderWeek(container);
+  else renderMonth(container);
+}
+
+function renderDay(container){
+  const d=new Date(today);d.setDate(d.getDate()+offset);
+  const opts={weekday:'long',month:'long',day:'numeric',year:'numeric'};
+  document.getElementById('nav-label').textContent=d.toLocaleDateString(undefined,opts);
+  document.getElementById('date-picker').value=d.toISOString().split('T')[0];
+  const jobs=getFilteredJobs().filter(j=>{const jd=new Date(j.scheduledDate+'T00:00:00');return jd.toDateString()===d.toDateString();});
+  let html='<div class="day-view">';
+  for(let h=6;h<=20;h++){
+    const timeStr=h.toString().padStart(2,'0')+':00';
+    const label=h<=12?(h===12?'12 PM':h+' AM'):(h-12)+' PM';
+    const slotJobs=jobs.filter(j=>{if(!j.scheduledTime)return h===8;const jh=parseInt(j.scheduledTime.split(':')[0]);return jh===h;});
+    html+='<div class="time-slot"><div class="time-label">'+label+'</div><div class="time-content">';
+    slotJobs.forEach(j=>{
+      const name=j.customer?j.customer.firstName+' '+j.customer.lastName:'';
+      const tech=j.technician?j.technician.firstName+' '+j.technician.lastName:'Unassigned';
+      const pDot=hasPresence(j.id)?'<span class="presence-dot"></span>':'';
+      html+='<div class="day-job '+j.status+'" onclick="location.href=\'job.html?id='+j.id+'\'">'+pDot+'#'+j.id+' '+j.title+' - '+name+'<span class="job-tech">'+tech+'</span></div>';
+    });
+    html+='</div></div>';
+  }
+  html+='</div>';
+  container.innerHTML=html;
+}
+
+function renderWeek(container){
+  const ws=new Date(today);ws.setDate(ws.getDate()-ws.getDay()+(offset*7));
+  const we=new Date(ws);we.setDate(we.getDate()+6);
+  const opts={month:'short',day:'numeric'};
+  document.getElementById('nav-label').textContent=ws.toLocaleDateString(undefined,opts)+' - '+we.toLocaleDateString(undefined,opts);
+  document.getElementById('date-picker').value=ws.toISOString().split('T')[0];
+  const jobs=getFilteredJobs();
+  let html='<div class="calendar-grid">';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>html+='<div class="day-header">'+d+'</div>');
+  for(let i=0;i<7;i++){
+    const d=new Date(ws);d.setDate(d.getDate()+i);
+    const isToday=d.toDateString()===today.toDateString();
+    const dayJobs=jobs.filter(j=>{const jd=new Date(j.scheduledDate+'T00:00:00');return jd.toDateString()===d.toDateString();});
+    html+='<div class="day-cell">';
+    html+='<div class="day-num'+(isToday?' today':'')+'">'+d.getDate()+'</div>';
+    if(dayJobs.length){
+      dayJobs.forEach(j=>{
+        const name=j.customer?j.customer.firstName:'';
+        const pDot=hasPresence(j.id)?'<span class="presence-dot"></span>':'';
+        html+='<div class="job-chip '+j.status+'" onclick="location.href=\'job.html?id='+j.id+'\'" title="'+j.title+' - '+(j.technician?j.technician.firstName+' '+j.technician.lastName:'Unassigned')+'">'+pDot+'#'+j.id+' '+name+'</div>';
+      });
+    }else{html+='<div class="no-jobs">No jobs</div>';}
+    html+='</div>';
+  }
+  html+='</div>';
+  container.innerHTML=html;
+}
+
+function renderMonth(container){
+  const refDate=new Date(today.getFullYear(),today.getMonth()+offset,1);
+  const year=refDate.getFullYear();const month=refDate.getMonth();
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const opts={month:'long',year:'numeric'};
+  document.getElementById('nav-label').textContent=refDate.toLocaleDateString(undefined,opts);
+  document.getElementById('date-picker').value=refDate.toISOString().split('T')[0];
+  const jobs=getFilteredJobs();
+  let html='<div class="calendar-grid">';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=>html+='<div class="day-header">'+d+'</div>');
+  // Fill leading empty cells
+  const prevMonth=new Date(year,month,0);
+  for(let i=firstDay-1;i>=0;i--){
+    html+='<div class="day-cell other-month"><div class="day-num">'+(prevMonth.getDate()-i)+'</div></div>';
+  }
+  // Fill days
+  for(let d=1;d<=daysInMonth;d++){
+    const date=new Date(year,month,d);
+    const isToday=date.toDateString()===today.toDateString();
+    const dayJobs=jobs.filter(j=>{const jd=new Date(j.scheduledDate+'T00:00:00');return jd.getFullYear()===year&&jd.getMonth()===month&&jd.getDate()===d;});
+    html+='<div class="day-cell">';
+    html+='<div class="day-num'+(isToday?' today':'')+'">'+d+'</div>';
+    dayJobs.slice(0,3).forEach(j=>{
+      const pDot=hasPresence(j.id)?'<span class="presence-dot"></span>':'';
+      html+='<div class="job-chip '+j.status+'" onclick="location.href=\'job.html?id='+j.id+'\'">'+pDot+'#'+j.id+'</div>';
+    });
+    if(dayJobs.length>3)html+='<div style="font-size:0.7rem;color:#64748b;">+'+(dayJobs.length-3)+' more</div>';
+    html+='</div>';
+  }
+  // Fill trailing empty cells
+  const totalCells=firstDay+daysInMonth;
+  const remaining=totalCells%7===0?0:7-(totalCells%7);
+  for(let i=1;i<=remaining;i++){
+    html+='<div class="day-cell other-month"><div class="day-num">'+i+'</div></div>';
+  }
+  html+='</div>';
+  container.innerHTML=html;
+}
+
 init();
 </script>
 </body>

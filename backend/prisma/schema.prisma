@@ -1,143 +1,165 @@
 generator client {
   provider = "prisma-client-js"
-  }
+}
 
-  datasource db {
-    provider = "sqlite"
-      url      = env("DATABASE_URL")
-      }
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
 
-      // ─── User ──────────────────────────────────────────────────────────────────────
-      model User {
-        id        Int      @id @default(autoincrement())
-          email     String   @unique
-            password  String
-              firstName String
-                lastName  String
-                  // roles: super-admin | admin | technician | dispatcher | office
-                    role      String   @default("technician")
-                      phone     String?
-                        active    Boolean  @default(true)
-                          createdAt DateTime @default(now())
-                            jobs      Job[]
-                            }
+// ─── User ──────────────────────────────────────────────────────────────────────
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  // roles: super-admin | admin | technician | dispatcher | office
+  role      String   @default("technician")
+  phone     String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  jobs      Job[]
+}
 
-                            // ─── Customer ─────────────────────────────────────────────────────────────────
-                            model Customer {
-                              id        Int      @id @default(autoincrement())
-                                firstName String
-                                  lastName  String
-                                    email     String?
-                                      phone     String
-                                        address   String
-                                          city      String
-                                            // defaultState is configured via BRAND_DEFAULT_STATE env var
-                                              state     String   @default("KS")
-                                                zip       String
-                                                  // type: residential | commercial | industrial
-                                                    type      String   @default("residential")
-                                                      notes     String?
-                                                        createdAt DateTime @default(now())
-                                                          jobs      Job[]
-                                                          }
+// ─── Customer ─────────────────────────────────────────────────────────────────
+model Customer {
+  id             Int             @id @default(autoincrement())
+  firstName      String
+  lastName       String
+  email          String?
+  phone          String
+  address        String
+  city           String
+  // defaultState is configured via BRAND_DEFAULT_STATE env var
+  state          String          @default("KS")
+  zip            String
+  // type: residential | commercial | industrial
+  type           String          @default("residential")
+  notes          String?
+  version        Int             @default(1)
+  createdAt      DateTime        @default(now())
+  jobs           Job[]
+  communications Communication[]
+}
 
-                                                          // ─── Job ──────────────────────────────────────────────────────────────────────
-                                                          model Job {
-                                                            id            Int       @id @default(autoincrement())
-                                                              title         String
-                                                                description   String?
-                                                                  // status: pending | scheduled | in-progress | completed | cancelled
-                                                                    status        String    @default("pending")
-                                                                      // priority: low | normal | high | urgent
-                                                                        priority      String    @default("normal")
-                                                                          // type is trade-specific — values driven by brand.config.js jobTypes
-                                                                            type          String    @default("residential")
-                                                                              // tradeType mirrors BRAND_TRADE_TYPE for multi-trade platforms
-                                                                                tradeType     String?
-                                                                                  scheduledAt   DateTime?
-                                                                                    scheduledDate String?
-                                                                                      scheduledTime String?
-                                                                                        duration      Float?    @default(1.5)
-                                                                                          completedAt   DateTime?
-                                                                                            createdAt     DateTime  @default(now())
-                                                                                              customer      Customer  @relation(fields: [customerId], references: [id])
-                                                                                                customerId    Int
-                                                                                                  technician    User?     @relation(fields: [technicianId], references: [id])
-                                                                                                    technicianId  Int?
-                                                                                                      quote         Quote?
-                                                                                                        invoice       Invoice?
-                                                                                                          jobParts      JobPart[]
-                                                                                                            notes         String?
-                                                                                                            }
-                                                                                                            
-                                                                                                            // ─── Quote ────────────────────────────────────────────────────────────────────
-                                                                                                            model Quote {
-                                                                                                              id        Int      @id @default(autoincrement())
-                                                                                                                jobId     Int      @unique
-                                                                                                                  job       Job      @relation(fields: [jobId], references: [id])
-                                                                                                                    amount    Float
-                                                                                                                      // status: draft | sent | approved | declined
-                                                                                                                        status    String   @default("draft")
-                                                                                                                          notes     String?
-                                                                                                                            createdAt DateTime @default(now())
-                                                                                                                            }
-                                                                                                                            
-                                                                                                                            // ─── Invoice ──────────────────────────────────────────────────────────────────
-                                                                                                                            model Invoice {
-                                                                                                                              id        Int       @id @default(autoincrement())
-                                                                                                                                jobId     Int       @unique
-                                                                                                                                  job       Job       @relation(fields: [jobId], references: [id])
-                                                                                                                                    amount    Float
-                                                                                                                                      // status: unpaid | paid | overdue | void
-                                                                                                                                        status    String    @default("unpaid")
-                                                                                                                                          dueDate   DateTime?
-                                                                                                                                            paidAt    DateTime?
-                                                                                                                                              notes     String?
-                                                                                                                                                createdAt DateTime  @default(now())
-                                                                                                                                                }
-                                                                                                                                                
-                                                                                                                                                // ─── InventoryItem ────────────────────────────────────────────────────────────
-                                                                                                                                                model InventoryItem {
-                                                                                                                                                  id          Int       @id @default(autoincrement())
-                                                                                                                                                    name        String
-                                                                                                                                                      description String?
-                                                                                                                                                        sku         String?   @unique
-                                                                                                                                                          quantity    Int       @default(0)
-                                                                                                                                                            minQuantity Int       @default(5)
-                                                                                                                                                              unitCost    Float
-                                                                                                                                                                category    String    @default("general")
-                                                                                                                                                                  location    String?
-                                                                                                                                                                    createdAt   DateTime  @default(now())
-                                                                                                                                                                      jobParts    JobPart[]
-                                                                                                                                                                      }
-                                                                                                                                                                      
-                                                                                                                                                                      // ─── JobPart ──────────────────────────────────────────────────────────────────
-                                                                                                                                                                      model JobPart {
-                                                                                                                                                                        id              Int           @id @default(autoincrement())
-                                                                                                                                                                          jobId           Int
-                                                                                                                                                                            job             Job           @relation(fields: [jobId], references: [id])
-                                                                                                                                                                              inventoryItemId Int
-                                                                                                                                                                                inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
-                                                                                                                                                                                  quantity        Int
-                                                                                                                                                                                    unitCost        Float
-                                                                                                                                                                                    }
-                                                                                                                                                                                    
-                                                                                                                                                                                    // ─── PriceBookItem ────────────────────────────────────────────────────────────
-                                                                                                                                                                                    // The `industry` field mirrors BRAND_INDUSTRY_LABEL / brand.config.js
-                                                                                                                                                                                    model PriceBookItem {
-                                                                                                                                                                                      id          Int      @id @default(autoincrement())
-                                                                                                                                                                                        // industry: Electrical | Plumbing | HVAC | General Contracting
-                                                                                                                                                                                          industry    String   @default("Electrical")
-                                                                                                                                                                                            category    String
-                                                                                                                                                                                              subcategory String?
-                                                                                                                                                                                                name        String
-                                                                                                                                                                                                  description String?
-                                                                                                                                                                                                    price       Float    @default(0)
-                                                                                                                                                                                                      cost        Float    @default(0)
-                                                                                                                                                                                                        taxable     Boolean  @default(false)
-                                                                                                                                                                                                          unit        String?
-                                                                                                                                                                                                            taskCode    String?
-                                                                                                                                                                                                              active      Boolean  @default(true)
-                                                                                                                                                                                                                createdAt   DateTime @default(now())
-                                                                                                                                                                                                                }
-                                                                                                                                                                                                                
+// ─── Job ──────────────────────────────────────────────────────────────────────
+model Job {
+  id            Int       @id @default(autoincrement())
+  title         String
+  description   String?
+  // status: pending | scheduled | in-progress | completed | cancelled
+  status        String    @default("pending")
+  // priority: low | normal | high | urgent
+  priority      String    @default("normal")
+  // type is trade-specific — values driven by brand.config.js jobTypes
+  type          String    @default("residential")
+  // tradeType mirrors BRAND_TRADE_TYPE for multi-trade platforms
+  tradeType     String?
+  scheduledAt   DateTime?
+  scheduledDate String?
+  scheduledTime String?
+  duration      Float?    @default(1.5)
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  customer      Customer  @relation(fields: [customerId], references: [id])
+  customerId    Int
+  technician    User?     @relation(fields: [technicianId], references: [id])
+  technicianId  Int?
+  quote         Quote?
+  invoice       Invoice?
+  jobParts      JobPart[]
+  notes         String?
+  version       Int       @default(1)
+}
+
+// ─── Quote ────────────────────────────────────────────────────────────────────
+model Quote {
+  id        Int      @id @default(autoincrement())
+  jobId     Int      @unique
+  job       Job      @relation(fields: [jobId], references: [id])
+  amount    Float
+  // status: draft | sent | approved | declined
+  status    String   @default("draft")
+  notes     String?
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+}
+
+// ─── Invoice ──────────────────────────────────────────────────────────────────
+model Invoice {
+  id        Int       @id @default(autoincrement())
+  jobId     Int       @unique
+  job       Job       @relation(fields: [jobId], references: [id])
+  amount    Float
+  // status: unpaid | paid | overdue | void
+  status    String    @default("unpaid")
+  dueDate   DateTime?
+  paidAt    DateTime?
+  notes     String?
+  version   Int       @default(1)
+  createdAt DateTime  @default(now())
+}
+
+// ─── InventoryItem ────────────────────────────────────────────────────────────
+model InventoryItem {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  sku         String?   @unique
+  quantity    Int       @default(0)
+  minQuantity Int       @default(5)
+  unitCost    Float
+  category    String    @default("general")
+  location    String?
+  createdAt   DateTime  @default(now())
+  jobParts    JobPart[]
+}
+
+// ─── JobPart ──────────────────────────────────────────────────────────────────
+model JobPart {
+  id              Int           @id @default(autoincrement())
+  jobId           Int
+  job             Job           @relation(fields: [jobId], references: [id])
+  inventoryItemId Int
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  quantity        Int
+  unitCost        Float
+}
+
+// ─── PriceBookItem ────────────────────────────────────────────────────────────
+// The `industry` field mirrors BRAND_INDUSTRY_LABEL / brand.config.js
+model PriceBookItem {
+  id          Int      @id @default(autoincrement())
+  // industry: Electrical | Plumbing | HVAC | General Contracting
+  industry    String   @default("Electrical")
+  category    String
+  subcategory String?
+  name        String
+  description String?
+  price       Float    @default(0)
+  cost        Float    @default(0)
+  taxable     Boolean  @default(false)
+  unit        String?
+  taskCode    String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+// ─── Communication ────────────────────────────────────────────────────────────
+// Tracks all customer communications: calls, emails, texts, notes
+model Communication {
+  id         Int      @id @default(autoincrement())
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id])
+  // type: call | email | text | note
+  type       String
+  // direction: inbound | outbound
+  direction  String   @default("outbound")
+  subject    String?
+  body       String?
+  from       String?
+  to         String?
+  gmailMsgId String?
+  createdAt  DateTime @default(now())
+}
