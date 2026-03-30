@@ -27,31 +27,33 @@ const prisma = new PrismaClient();
 //
 // Supported roles: super-admin | admin | technician | dispatcher | office
 
-const TEAM = [];
+const TEAM = [
+  { email: 'bob@allproplumbinghvac.com',   firstName: 'Bob',    lastName: 'Hiatt',    role: 'admin' },
+  { email: 'sara@allproplumbinghvac.com',  firstName: 'Sara',   lastName: 'Hiatt',    role: 'admin' },
+  { email: 'mike@allproplumbinghvac.com',  firstName: 'Mike',   lastName: 'Ramos',    role: 'technician' },
+  { email: 'jake@allproplumbinghvac.com',  firstName: 'Jake',   lastName: 'Townsend', role: 'technician' },
+  { email: 'lisa@allproplumbinghvac.com',  firstName: 'Lisa',   lastName: 'Chen',     role: 'dispatcher' },
+];
 
-// ── Add your customers here ─────────────────────────────────────────────────
-// Example format (uncomment and customize):
-//
-// const CUSTOMERS = [
-//   { firstName: 'John', lastName: 'Doe', phone: '555-0001', email: 'john@example.com', address: '123 Main St', city: 'Anytown', state: 'KS', zip: '66001', type: 'residential' },
-// ];
-//
-// Supported types: residential | commercial | industrial
+const CUSTOMERS = [
+  { firstName: 'David',    lastName: 'Morrison',  phone: '316-555-0101', email: 'david.morrison@email.com',  address: '2415 N Woodlawn Blvd',  city: 'Wichita', state: 'KS', zip: '67220', type: 'residential' },
+  { firstName: 'Karen',    lastName: 'Phillips',  phone: '316-555-0102', email: 'karen.phillips@email.com',  address: '810 E Douglas Ave',      city: 'Wichita', state: 'KS', zip: '67202', type: 'residential' },
+  { firstName: 'Tom',      lastName: 'Nguyen',    phone: '316-555-0103', email: 'tom.nguyen@email.com',      address: '4320 W Maple St',        city: 'Wichita', state: 'KS', zip: '67209', type: 'residential' },
+  { firstName: 'Rachel',   lastName: 'Gomez',     phone: '316-555-0104', email: 'rachel.gomez@email.com',    address: '1100 S Seneca St',       city: 'Wichita', state: 'KS', zip: '67213', type: 'residential' },
+  { firstName: 'Midwest',  lastName: 'Dental Group', phone: '316-555-0201', email: 'office@midwestdental.com', address: '7700 E Kellogg Dr',   city: 'Wichita', state: 'KS', zip: '67207', type: 'commercial' },
+  { firstName: 'Sunrise',  lastName: 'Apartments',   phone: '316-555-0202', email: 'mgr@sunriseapts.com',     address: '3200 S Hydraulic Ave', city: 'Wichita', state: 'KS', zip: '67211', type: 'commercial' },
+];
 
-const CUSTOMERS = [];
-
-// ── Add your jobs here ──────────────────────────────────────────────────────
-// Jobs reference customers and team members by array index (0-based).
-// Example format (uncomment and customize):
-//
-// const JOBS = [
-//   { title: 'Service Call', type: 'General', status: 'pending', priority: 'normal', customerIndex: 0, techIndex: 0, scheduledDate: '2026-04-01', scheduledTime: '09:00', duration: 1.5, notes: '' },
-// ];
-//
-// Supported statuses: pending | scheduled | in-progress | completed | cancelled
-// Supported priorities: low | normal | high | urgent
-
-const JOBS = [];
+const JOBS = [
+  { title: 'Water Heater Replacement', type: 'Water Heater', status: 'scheduled',    priority: 'high',   customerIndex: 0, techIndex: 2, scheduledDate: '2026-04-01', scheduledTime: '08:00', duration: 3,   notes: 'Customer reports no hot water. 50-gal tank, gas. Quoted tankless upgrade.' },
+  { title: 'Kitchen Drain Backup',     type: 'Drain Cleaning', status: 'scheduled',  priority: 'normal', customerIndex: 1, techIndex: 3, scheduledDate: '2026-04-01', scheduledTime: '10:00', duration: 1.5, notes: 'Slow drain, possibly grease buildup. Bring snake & hydro-jet.' },
+  { title: 'AC Tune-Up',               type: 'Tune-Up',        status: 'scheduled',  priority: 'normal', customerIndex: 2, techIndex: 2, scheduledDate: '2026-04-02', scheduledTime: '09:00', duration: 1,   notes: 'Annual spring tune-up. Check refrigerant levels.' },
+  { title: 'Furnace Not Igniting',     type: 'Furnace Repair', status: 'pending',    priority: 'urgent', customerIndex: 3, techIndex: 3, scheduledDate: '2026-04-01', scheduledTime: '14:00', duration: 2,   notes: 'Furnace clicks but does not ignite. Likely ignitor or flame sensor.' },
+  { title: 'Restroom Fixture Remodel', type: 'Fixture Install', status: 'scheduled', priority: 'normal', customerIndex: 4, techIndex: 2, scheduledDate: '2026-04-03', scheduledTime: '07:00', duration: 6,   notes: '2 toilets + 3 faucets in patient restrooms. Work before office opens.' },
+  { title: 'Sewer Line Inspection',    type: 'Sewer Line',     status: 'pending',    priority: 'normal', customerIndex: 5, techIndex: 3, scheduledDate: '2026-04-04', scheduledTime: '08:00', duration: 2,   notes: 'Multiple units reporting slow drains. Camera inspect main line.' },
+  { title: 'Toilet Repair',            type: 'Leak Repair',    status: 'completed',  priority: 'low',    customerIndex: 1, techIndex: 2, scheduledDate: '2026-03-25', scheduledTime: '11:00', duration: 1,   notes: 'Running toilet — replaced flapper and fill valve.' },
+  { title: 'AC Install – Mini Split',  type: 'AC Install',     status: 'pending',    priority: 'normal', customerIndex: 0, techIndex: 2, scheduledDate: '2026-04-07', scheduledTime: '08:00', duration: 5,   notes: 'Ductless mini-split for garage workshop. Single zone.' },
+];
 
 async function main() {
   if (TEAM.length === 0 && CUSTOMERS.length === 0 && JOBS.length === 0) {
