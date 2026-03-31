@@ -12,6 +12,7 @@
         "seed:admin": "node seed_superadmin.js",
         "seed:prices": "node seed_pricebook.js",
         "seed:jobs": "node seed_jobs.js",
+        "seed:apikey": "node seed_apikey.js",
         "seed:all": "node seed_superadmin.js && node seed_pricebook.js && node seed_jobs.js",
         "test": "node tests/api.test.js",
         "studio": "npx prisma studio"

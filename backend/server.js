@@ -71,9 +71,13 @@ const PORT = process.env.PORT || 3001;
 app.use(cors({
   origin: process.env.APP_URL || '*',
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
 }));
 app.use(express.json());
+
+// ── API key authentication (runs before routes, sets req.user if valid) ────
+const { authenticateApiKey } = require('./middleware/apiKeyAuth');
+app.use('/api/', authenticateApiKey);
 
 // ── Rate limiting ───────────────────────────────────────────────────────────
 const apiLimiter = rateLimit({
@@ -119,6 +123,7 @@ app.use('/api/pricebook',       require('./routes/pricebook'));
 app.use('/api/exports',         require('./routes/exports'));
 app.use('/api/invites',         require('./routes/invites'));
 app.use('/api/communications',  require('./routes/communications'));
+app.use('/api/api-keys',        require('./routes/apiKeys'));
 // Google OAuth callback — mount invites router at /api/auth so
 // GOOGLE_CALLBACK_URL=/api/auth/google/callback works
 app.use('/api/auth',            require('./routes/invites'));

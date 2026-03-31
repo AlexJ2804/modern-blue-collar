@@ -20,6 +20,7 @@ model User {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   jobs      Job[]
+  apiKeys   ApiKey[]
 }
 
 // ─── Customer ─────────────────────────────────────────────────────────────────
@@ -162,4 +163,25 @@ model Communication {
   to         String?
   gmailMsgId String?
   createdAt  DateTime @default(now())
+}
+
+// ─── ApiKey ──────────────────────────────────────────────────────────────────
+// Per-company API keys for external integrations (QuickBooks, Twilio, Square…)
+// Keys are hashed with bcrypt — the plaintext is shown only once at creation.
+model ApiKey {
+  id          Int       @id @default(autoincrement())
+  // Human-readable label, e.g. "QuickBooks Sync", "Twilio", "Square POS"
+  name        String
+  // Unique prefix for lookup: first 8 chars of the key (e.g. "mbc_a1b2")
+  prefix      String    @unique
+  // bcrypt hash of the full key
+  hashedKey   String
+  // Scopes: comma-separated list, e.g. "read,write" or "read"
+  scopes      String    @default("read,write")
+  active      Boolean   @default(true)
+  lastUsedAt  DateTime?
+  createdById Int
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
 }
