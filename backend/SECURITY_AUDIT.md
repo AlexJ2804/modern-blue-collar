@@ -73,7 +73,7 @@
 - **Rate limiting** — Brute-force protection on all endpoints
 - **Optimistic locking** — Conflict prevention on all write operations
 - **Prisma ORM** — Parameterized queries prevent SQL injection
-- **Nightly backups** — Automated at 03:00 with 30-day retention
+- **Nightly backups** — Automated at 03:00, local + Wasabi cloud upload
 
 ## Recommendations for Production
 

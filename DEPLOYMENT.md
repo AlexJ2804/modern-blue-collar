@@ -193,19 +193,25 @@ Internet
                                                                                                            
                                                                                                            ---
                                                                                                            
-                                                                                                           ## Backups
+                                                                                                           ## Backups (Wasabi Cloud Storage)
                                                                                                            
                                                                                                            The platform runs a nightly backup at 03:00 (configured by `BRAND_TIMEZONE`).  
-                                                                                                           Backup files are stored in `backend/backups/`.
+                                                                                                           Backups are saved locally to `backend/backups/` AND uploaded to Wasabi cloud storage.
                                                                                                            
-                                                                                                           To configure off-site backup, set these env vars:
+                                                                                                           Wasabi (https://wasabi.com) is an S3-compatible cloud storage provider with
+                                                                                                           no egress fees and low-cost storage — ideal for database backups.
+                                                                                                           
+                                                                                                           To configure Wasabi cloud backup, set these env vars:
                                                                                                            
                                                                                                            ```ini
-                                                                                                           BACKUP_S3_BUCKET=your-s3-bucket
-                                                                                                           BACKUP_S3_KEY=your-access-key
-                                                                                                           BACKUP_S3_SECRET=your-secret-key
-                                                                                                           BACKUP_S3_REGION=us-east-1
+                                                                                                           WASABI_BUCKET=your-company-backups
+                                                                                                           WASABI_ACCESS_KEY=your_wasabi_access_key
+                                                                                                           WASABI_SECRET_KEY=your_wasabi_secret_key
+                                                                                                           WASABI_REGION=us-east-1
+                                                                                                           WASABI_ENDPOINT=https://s3.us-east-1.wasabisys.com
                                                                                                            ```
+                                                                                                           
+                                                                                                           Wasabi regions: us-east-1, us-east-2, us-central-1, us-west-1, eu-central-1, eu-central-2, eu-west-1, eu-west-2, ap-northeast-1, ap-northeast-2, ap-southeast-1, ap-southeast-2.
                                                                                                            
                                                                                                            To trigger a manual backup:
                                                                                                            
@@ -213,6 +219,8 @@ Internet
                                                                                                            cd backend
                                                                                                            node -e "require('./backup').runBackup()"
                                                                                                            ```
+                                                                                                           
+                                                                                                           If Wasabi credentials are not set, backups are local-only (still runs nightly).
                                                                                                            
                                                                                                            ---
                                                                                                            
