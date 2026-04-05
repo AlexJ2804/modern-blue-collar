@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Communications</title>
+  <style>
+    :root{--color-primary:#2563eb;--color-primary-dark:#1d4ed8;--color-nav-bg:#1e293b;--color-nav-text:#f1f5f9;--color-accent:#f59e0b;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:system-ui,sans-serif;background:#f8fafc;color:#1e293b;}
+    nav{background:var(--color-nav-bg);color:var(--color-nav-text);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+    .nav-brand{font-weight:700;font-size:1.1rem;display:flex;align-items:center;gap:0.5rem;}
+    .trade-badge{font-size:0.65rem;background:var(--color-accent);color:#1e293b;padding:2px 8px;border-radius:99px;font-weight:700;}
+    .nav-links{display:flex;gap:1.5rem;font-size:0.9rem;}
+    .nav-links a{color:#94a3b8;text-decoration:none;}
+    .nav-links a:hover,.nav-links a.active{color:#fff;}
+    .nav-right{display:flex;align-items:center;gap:1rem;}
+    .nav-user{font-size:0.85rem;color:#94a3b8;}
+    .btn-logout{background:none;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;font-size:0.8rem;}
+    main{max-width:900px;margin:2rem auto;padding:0 1.5rem;}
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;}
+    h2{font-size:1.4rem;}
+    .btn-primary{padding:0.5rem 1.1rem;background:var(--color-primary);color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;font-weight:600;}
+    .btn-sm{padding:0.4rem 0.9rem;background:var(--color-primary);color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;font-weight:600;}
+    .btn-cancel{padding:0.5rem 1rem;background:#f1f5f9;color:#475569;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;}
+    .filters{display:flex;gap:0.75rem;margin-bottom:1.25rem;flex-wrap:wrap;}
+    .filters select,.filters input{padding:0.5rem 0.8rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.875rem;background:#fff;}
+    .timeline{position:relative;padding-left:2rem;}
+    .timeline::before{content:'';position:absolute;left:0.75rem;top:0;bottom:0;width:2px;background:#e2e8f0;}
+    .timeline-item{position:relative;margin-bottom:1.5rem;padding:1rem;background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.07);}
+    .timeline-item::before{content:'';position:absolute;left:-1.65rem;top:1.25rem;width:12px;height:12px;border-radius:50%;border:2px solid #e2e8f0;background:#fff;}
+    .timeline-item.call::before{background:#3b82f6;border-color:#3b82f6;}
+    .timeline-item.email::before{background:#8b5cf6;border-color:#8b5cf6;}
+    .timeline-item.text::before{background:#22c55e;border-color:#22c55e;}
+    .timeline-item.note::before{background:#f59e0b;border-color:#f59e0b;}
+    .timeline-item.quote::before{background:#06b6d4;border-color:#06b6d4;}
+    .timeline-item.invoice::before{background:#ec4899;border-color:#ec4899;}
+    .timeline-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;}
+    .timeline-type{font-size:0.75rem;font-weight:600;text-transform:uppercase;padding:2px 8px;border-radius:99px;}
+    .type-call{background:#dbeafe;color:#1d4ed8;}
+    .type-email{background:#ede9fe;color:#7c3aed;}
+    .type-text{background:#dcfce7;color:#15803d;}
+    .type-note{background:#fef3c7;color:#b45309;}
+    .type-quote{background:#cffafe;color:#0891b2;}
+    .type-invoice{background:#fce7f3;color:#db2777;}
+    .timeline-date{font-size:0.8rem;color:#94a3b8;}
+    .timeline-subject{font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;}
+    .timeline-body{font-size:0.85rem;color:#475569;line-height:1.5;}
+    .timeline-direction{font-size:0.75rem;color:#94a3b8;}
+    .empty{text-align:center;padding:3rem;color:#94a3b8;}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:#fff;border-radius:12px;padding:2rem;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto;}
+    .modal h3{font-size:1.1rem;margin-bottom:1.25rem;}
+    .form-group{margin-bottom:1rem;}
+    .form-group label{display:block;font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:0.4rem;}
+    .form-group input,.form-group select,.form-group textarea{width:100%;padding:0.6rem 0.9rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;}
+    .form-group textarea{resize:vertical;min-height:100px;}
+    .modal-footer{display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.5rem;}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">
+    <span id="nav-company">Dashboard</span>
+    <span class="trade-badge" id="nav-trade">TRADE</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html">Customers</a>
+    <a href="dispatch.html">Dispatch</a>
+    <a href="schedule.html">Schedule</a>
+    <a href="team.html" id="nav-team-label">Team</a>
+    <a href="pricebook.html">Pricebook</a>
+    <a href="quote-invoice.html">Quotes &amp; Invoices</a>
+    <a href="api-keys.html">API Keys</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user-name"></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<main>
+  <div class="page-header">
+    <h2 id="page-title">Communication History</h2>
+    <button class="btn-primary" onclick="openModal()">+ Log Communication</button>
+  </div>
+  <div class="filters">
+    <select id="customer-filter" onchange="loadTimeline()"><option value="">All Customers</option></select>
+    <select id="type-filter" onchange="filterTimeline()">
+      <option value="">All Types</option>
+      <option value="call">Calls</option>
+      <option value="email">Emails</option>
+      <option value="text">Texts</option>
+      <option value="note">Notes</option>
+      <option value="quote">Quotes</option>
+      <option value="invoice">Invoices</option>
+    </select>
+  </div>
+  <div class="timeline" id="timeline">
+    <div class="empty">Select a customer to view communication history.</div>
+  </div>
+</main>
+
+<!-- Log Communication Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>Log Communication</h3>
+    <div class="form-group"><label>Customer *</label><select id="f-customer"><option value="">Select customer...</option></select></div>
+    <div class="form-group"><label>Type *</label>
+      <select id="f-type">
+        <option value="call">Call</option>
+        <option value="email">Email</option>
+        <option value="text">Text</option>
+        <option value="note">Note</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Direction</label>
+      <select id="f-direction">
+        <option value="outbound">Outbound</option>
+        <option value="inbound">Inbound</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Subject</label><input type="text" id="f-subject" placeholder="Subject or summary..." /></div>
+    <div class="form-group"><label>Details</label><textarea id="f-body" placeholder="Communication details..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="logComm()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='';let brand={};let token=localStorage.getItem('token');let allTimeline=[];
+const params=new URLSearchParams(window.location.search);
+const presetCustomerId=params.get('customerId');
+
+async function loadBrand(){try{const r=await fetch(API+'/api/brand');brand=await r.json();document.title=brand.companyName+' - Communications';document.getElementById('nav-company').textContent=brand.companyName;document.getElementById('nav-trade').textContent=(brand.tradeType||'trade').toUpperCase();const tl=brand.technicianLabel||'Technician';document.getElementById('nav-team-label').textContent=tl+'s';if(brand.colors){const s=document.documentElement.style;if(brand.colors.primary)s.setProperty('--color-primary',brand.colors.primary);if(brand.colors.primaryDark)s.setProperty('--color-primary-dark',brand.colors.primaryDark);if(brand.colors.navBg)s.setProperty('--color-nav-bg',brand.colors.navBg);if(brand.colors.navText)s.setProperty('--color-nav-text',brand.colors.navText);if(brand.colors.accent)s.setProperty('--color-accent',brand.colors.accent);}}catch(e){console.warn(e);}}
+function logout(){localStorage.removeItem('token');location.href='index.html';}
+
+async function init(){
+  await loadBrand();
+  if(!token){location.href='index.html';return;}
+  const r=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});
+  if(!r.ok){location.href='index.html';return;}
+  const me=await r.json();
+  document.getElementById('nav-user-name').textContent=me.firstName+' '+me.lastName;
+  await loadCustomers();
+  if(presetCustomerId){
+    document.getElementById('customer-filter').value=presetCustomerId;
+    loadTimeline();
+  }
+}
+
+async function loadCustomers(){
+  try{
+    const r=await fetch(API+'/api/customers',{headers:{Authorization:'Bearer '+token}});
+    const custs=await r.json();
+    const sel=document.getElementById('customer-filter');
+    const sel2=document.getElementById('f-customer');
+    custs.forEach(c=>{
+      const name=c.firstName+' '+c.lastName;
+      sel.innerHTML+='<option value="'+c.id+'">'+name+'</option>';
+      sel2.innerHTML+='<option value="'+c.id+'">'+name+'</option>';
+    });
+  }catch(e){console.warn(e);}
+}
+
+async function loadTimeline(){
+  const custId=document.getElementById('customer-filter').value;
+  const el=document.getElementById('timeline');
+  if(!custId){el.innerHTML='<div class="empty">Select a customer to view communication history.</div>';allTimeline=[];return;}
+  try{
+    const r=await fetch(API+'/api/communications?customerId='+custId,{headers:{Authorization:'Bearer '+token}});
+    const data=await r.json();
+    allTimeline=data.timeline||[];
+    filterTimeline();
+  }catch(e){el.innerHTML='<div class="empty" style="color:#ef4444">Failed to load.</div>';}
+}
+
+function filterTimeline(){
+  const typeFilter=document.getElementById('type-filter').value;
+  const filtered=typeFilter?allTimeline.filter(t=>t.type===typeFilter):allTimeline;
+  renderTimeline(filtered);
+}
+
+function renderTimeline(items){
+  const el=document.getElementById('timeline');
+  if(!items.length){el.innerHTML='<div class="empty">No communications found.</div>';return;}
+  el.innerHTML=items.map(t=>{
+    const typeClass='type-'+t.type;
+    return '<div class="timeline-item '+t.type+'">'+
+      '<div class="timeline-header">'+
+        '<span class="timeline-type '+typeClass+'">'+t.type+'</span>'+
+        '<span class="timeline-date">'+new Date(t.createdAt).toLocaleString()+'</span>'+
+      '</div>'+
+      (t.subject?'<div class="timeline-subject">'+escHtml(t.subject)+'</div>':'')+
+      (t.body?'<div class="timeline-body">'+escHtml(t.body)+'</div>':'')+
+      (t.direction?'<div class="timeline-direction">'+t.direction+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+
+function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+function openModal(){document.getElementById('modal').classList.add('open');}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+
+async function logComm(){
+  const custId=document.getElementById('f-customer').value;
+  if(!custId){alert('Customer is required');return;}
+  const body={
+    customerId:parseInt(custId),
+    type:document.getElementById('f-type').value,
+    direction:document.getElementById('f-direction').value,
+    subject:document.getElementById('f-subject').value.trim(),
+    body:document.getElementById('f-body').value.trim(),
+  };
+  try{
+    const r=await fetch(API+'/api/communications',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
+    if(!r.ok){const d=await r.json();throw new Error(d.error||'Failed');}
+    closeModal();
+    document.getElementById('f-subject').value='';
+    document.getElementById('f-body').value='';
+    // Reload if viewing that customer
+    if(document.getElementById('customer-filter').value===custId)loadTimeline();
+  }catch(e){alert(e.message);}
+}
+
+init();
+</script>
+</body>
+</html>

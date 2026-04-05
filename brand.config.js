@@ -17,7 +17,7 @@ module.exports = {
       companyAddress:process.env.BRAND_COMPANY_ADDRESS|| '',
 
       // ── Trade type ──────────────────────────────────────────────────────────────
-      // Supported values: 'electrical' | 'plumbing' | 'hvac' | 'contracting'
+      // Supported values: 'electrical' | 'plumbing' | 'hvac' | 'plumbing-hvac' | 'contracting'
       tradeType: process.env.BRAND_TRADE_TYPE || 'electrical',
 
       // ── UI theme colours (CSS custom properties) ────────────────────────────────
@@ -43,10 +43,11 @@ module.exports = {
             // Used as the default "industry" value in PriceBookItem records.
             get industryLabel() {
     const map = {
-            electrical:  'Electrical',
-                    plumbing:    'Plumbing',
-                    hvac:        'HVAC',
-                    contracting: 'General Contracting',
+            electrical:     'Electrical',
+                    plumbing:       'Plumbing',
+                    hvac:           'HVAC',
+                    'plumbing-hvac':'Plumbing & HVAC',
+                    contracting:    'General Contracting',
               };
     return process.env.BRAND_INDUSTRY_LABEL || map[this.tradeType] || 'Electrical';
         },
@@ -54,10 +55,11 @@ module.exports = {
   // ── Trade-specific job types ─────────────────────────────────────────────────
   get jobTypes() {
         const map = {
-                electrical:  ['Panel Upgrade', 'Outlet / Switch', 'Lighting', 'EV Charger', 'Generator', 'Inspection', 'Troubleshooting', 'Other'],
-                        plumbing:    ['Leak Repair', 'Drain Cleaning', 'Water Heater', 'Fixture Install', 'Sewer Line', 'Inspection', 'Troubleshooting', 'Other'],
-                        hvac:        ['AC Install', 'Furnace Install', 'AC Repair', 'Furnace Repair', 'Duct Work', 'Tune-Up', 'Inspection', 'Other'],
-                        contracting: ['Framing', 'Drywall', 'Flooring', 'Roofing', 'Painting', 'Demo', 'General Repair', 'Other'],
+                electrical:      ['Panel Upgrade', 'Outlet / Switch', 'Lighting', 'EV Charger', 'Generator', 'Inspection', 'Troubleshooting', 'Other'],
+                        plumbing:        ['Leak Repair', 'Drain Cleaning', 'Water Heater', 'Fixture Install', 'Sewer Line', 'Inspection', 'Troubleshooting', 'Other'],
+                        hvac:            ['AC Install', 'Furnace Install', 'AC Repair', 'Furnace Repair', 'Duct Work', 'Tune-Up', 'Inspection', 'Other'],
+                        'plumbing-hvac': ['Leak Repair', 'Drain Cleaning', 'Water Heater', 'Fixture Install', 'Sewer Line', 'AC Install', 'Furnace Install', 'AC Repair', 'Furnace Repair', 'Duct Work', 'Tune-Up', 'Inspection', 'Troubleshooting', 'Other'],
+                        contracting:     ['Framing', 'Drywall', 'Flooring', 'Roofing', 'Painting', 'Demo', 'General Repair', 'Other'],
                   };
     return map[this.tradeType] || map.electrical;
   },
@@ -65,10 +67,11 @@ module.exports = {
   // ── Trade-specific technician label ──────────────────────────────────────────
   get technicianLabel() {
         const map = {
-                electrical:  'Electrician',
-                        plumbing:    'Plumber',
-                        hvac:        'HVAC Technician',
-                        contracting: 'Contractor',
+                electrical:      'Electrician',
+                        plumbing:        'Plumber',
+                        hvac:            'HVAC Technician',
+                        'plumbing-hvac': 'Technician',
+                        contracting:     'Contractor',
                   };
     return process.env.BRAND_TECH_LABEL || map[this.tradeType] || 'Technician';
   },
