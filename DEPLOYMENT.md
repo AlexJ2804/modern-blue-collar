@@ -11,14 +11,64 @@ For cloud-platform specifics (Railway, Render, Fly.io) see the platform-specific
 Internet
    │
       ▼
-      Nginx (reverse proxy, SSL termination)
+      Nginx / Cloud LB (reverse proxy, SSL)
          │
             ▼
             Node.js / Express  (port 3001)
                │
                   ▼
-                  SQLite  (prisma/prod.db)
+                  PostgreSQL  (managed DB)
                   ```
+
+## Database
+
+This platform uses **PostgreSQL** in production. For local development you can also
+use SQLite by changing the Prisma provider back to `sqlite`.
+
+Set `DATABASE_URL` to your PostgreSQL connection string:
+```ini
+DATABASE_URL="postgresql://user:password@host:25060/dbname?sslmode=require"
+```
+
+---
+
+## Option 0 — Digital Ocean App Platform (recommended)
+
+### 1. Create a managed PostgreSQL database
+- Digital Ocean → Databases → Create → PostgreSQL 16
+- Note the connection string from the database dashboard
+
+### 2. Create an App
+- Source: GitHub → select your repository and branch
+- Component type: **Web Service**
+- Source Directory: `backend`
+- Build Command: `npm install && npm run build`
+- Run Command: `npm start`
+
+### 3. Set environment variables
+In the App Settings → Environment Variables, add:
+```
+DATABASE_URL = <your PostgreSQL connection string>?sslmode=require
+JWT_SECRET = <random 32+ char string>
+NODE_ENV = production
+BRAND_COMPANY_NAME = <company name>
+BRAND_TRADE_TYPE = <electrical|plumbing|hvac|plumbing-hvac|contracting>
+```
+Plus any other `BRAND_*`, `WASABI_*`, `TWILIO_*`, `QB_*` vars from `.env.example`.
+
+### 4. Deploy
+Digital Ocean will automatically:
+1. Run `npm install`
+2. Run `npm run build` → `prisma generate` + `prisma migrate deploy`
+3. Run `npm start`
+
+### 5. Seed initial data (one-time, from local machine)
+```bash
+export DATABASE_URL="postgresql://user:password@host:25060/dbname?sslmode=require"
+ADMIN_EMAIL=admin@company.com ADMIN_PASSWORD=secure123 node seed_superadmin.js
+node seed_pricebook.js
+node seed_apikey.js
+```
 
                   ---
 

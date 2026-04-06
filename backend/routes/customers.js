@@ -21,10 +21,10 @@ router.get('/', requireAuth, async (req, res, next) => {
     if (type) where.type = type;
     if (search) {
       where.OR = [
-        { firstName: { contains: search } },
-        { lastName:  { contains: search } },
+        { firstName: { contains: search, mode: 'insensitive' } },
+        { lastName:  { contains: search, mode: 'insensitive' } },
         { phone:     { contains: search } },
-        { email:     { contains: search } },
+        { email:     { contains: search, mode: 'insensitive' } },
       ];
     }
     const customers = await prisma.customer.findMany({
