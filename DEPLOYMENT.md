@@ -1,334 +1,53 @@
-# DEPLOYMENT.md — Production Deployment
+# DigitalOcean App Platform — Deployment Guide
 
-This document covers deploying **Modern Blue Collar** to a production Linux server (Ubuntu/Debian).  
-For cloud-platform specifics (Railway, Render, Fly.io) see the platform-specific sections below.
+## Pre-Deployment Checklist
 
----
+Complete every item on this list before pushing to main and attempting a deployment. These are all lessons learned from the Kraft Electric initial deployment.
 
-## Architecture Overview
+### 1. Set Source Directory to `backend`
+The app code lives in the `backend/` subfolder. DigitalOcean defaults to the repo root and will fail to find Express and other dependencies. In DigitalOcean App Platform: Settings → Component Settings → Source → Edit → set Source Directory to `backend`.
 
-```
-Internet
-   │
-      ▼
-      Nginx / Cloud LB (reverse proxy, SSL)
-         │
-            ▼
-            Node.js / Express  (port 3001)
-               │
-                  ▼
-                  PostgreSQL  (managed DB)
-                  ```
+### 2. All dependencies must be in `package.json` with `--save`
+Never run `npm install <package>` alone. Always run `npm install <package> --save` so the dependency is written to `package.json`. DigitalOcean runs `npm ci` from `package.json` only — packages installed locally but not listed there will be missing on the server and crash the build.
 
-## Database
+### 3. Commit both `package.json` and `package-lock.json` together
+After adding or removing any dependency, run `npm install` inside the `backend/` directory to regenerate `package-lock.json`. DigitalOcean uses `npm ci` which requires the lockfile to exactly match `package.json`. Always commit both files together. A mismatch causes the build to fail with "npm lockfile is not in sync".
 
-This platform uses **PostgreSQL** in production. For local development you can also
-use SQLite by changing the Prisma provider back to `sqlite`.
+### 4. Merge feature branch to main before deploying
+DigitalOcean watches the `main` branch. Any fixes on feature branches must be merged to `main` before they take effect on the deployment. Run: `git checkout main && git merge <branch> && git push origin main`
 
-Set `DATABASE_URL` to your PostgreSQL connection string:
-```ini
-DATABASE_URL="postgresql://user:password@host:25060/dbname?sslmode=require"
-```
+### 5. Set component-level environment variables
+These three variables are required at startup. Set them in DigitalOcean: Settings → Component Settings → Environment Variables (NOT app-level — app-level env vars do not apply to service components):
 
----
+| Key | Value |
+|---|---|
+| PORT | 8080 |
+| JWT_SECRET | (any long random string) |
+| NODE_ENV | production |
 
-## Option 0 — Digital Ocean App Platform (recommended)
+DigitalOcean health-checks port 8080 by default. Without PORT=8080 the app starts on 3001 and the health check kills the container. Without JWT_SECRET the auth middleware crashes on startup.
 
-### 1. Create a managed PostgreSQL database
-- Digital Ocean → Databases → Create → PostgreSQL 16
-- Note the connection string from the database dashboard
+## First Deployment Steps (in order)
 
-### 2. Create an App
-- Source: GitHub → select your repository and branch
-- Component type: **Web Service**
-- Source Directory: `backend`
-- Build Command: `npm install && npm run build`
-- Run Command: `npm start`
+1. Confirm source directory is set to `backend` in DigitalOcean component settings
+2. Confirm all dependencies are in `backend/package.json`
+3. Run `cd backend && npm install` and commit both `package.json` and `package-lock.json`
+4. Merge all changes to `main` and push
+5. Add PORT, JWT_SECRET, NODE_ENV as component-level env vars in DigitalOcean
+6. Watch the deploy logs — build phase should pass before deploy phase
 
-### 3. Set environment variables
-In the App Settings → Environment Variables, add:
-```
-DATABASE_URL = <your PostgreSQL connection string>?sslmode=require
-JWT_SECRET = <random 32+ char string>
-NODE_ENV = production
-BRAND_COMPANY_NAME = <company name>
-BRAND_TRADE_TYPE = <electrical|plumbing|hvac|plumbing-hvac|contracting>
-```
-Plus any other `BRAND_*`, `WASABI_*`, `TWILIO_*`, `QB_*` vars from `.env.example`.
+## Common Errors and Fixes
 
-### 4. Deploy
-Digital Ocean will automatically:
-1. Run `npm install`
-2. Run `npm run build` → `prisma generate` + `prisma migrate deploy`
-3. Run `npm start`
+**"Cannot find module 'X'"** → Package not in `package.json`. Run `npm install X --save` in `backend/`, commit both files, push.
 
-### 5. Seed initial data (one-time, from local machine)
-```bash
-export DATABASE_URL="postgresql://user:password@host:25060/dbname?sslmode=require"
-ADMIN_EMAIL=admin@company.com ADMIN_PASSWORD=secure123 node seed_superadmin.js
-node seed_pricebook.js
-node seed_apikey.js
-```
+**"npm lockfile is not in sync"** → Run `cd backend && npm install`, commit `package-lock.json`, push.
 
-                  ---
+**"container exited with non-zero exit code"** → Check deploy logs. Usually means PORT, JWT_SECRET, or NODE_ENV env vars are missing from component settings.
 
-                  ## Option A — VPS / Bare Metal (recommended for self-hosting)
+**"Readiness probe failed: connection refused :8080"** → PORT=8080 is not set as a component-level env var.
 
-                  ### 1. Provision the server
+**"Sorry, we couldn't find an app in your repo"** → Source Directory is not set to `backend`.
 
-                  - Ubuntu 22.04 LTS or newer (1 vCPU / 1 GB RAM minimum)
-                  - Open ports: **80** (HTTP), **443** (HTTPS)
+## Production Upgrade (at client handover)
 
-                  ### 2. Install Node.js 18
-
-                  ```bash
-                  curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-                  sudo apt-get install -y nodejs
-                  node -v   # should print v18.x.x
-                  ```
-
-                  ### 3. Install Nginx & Certbot
-
-                  ```bash
-                  sudo apt install -y nginx certbot python3-certbot-nginx
-                  ```
-
-                  ### 4. Clone & install
-
-                  ```bash
-                  sudo mkdir -p /var/www/modern-blue-collar
-                  sudo chown $USER:$USER /var/www/modern-blue-collar
-                  git clone https://github.com/AlexJ2804/modern-blue-collar.git /var/www/modern-blue-collar
-                  cd /var/www/modern-blue-collar/backend
-                  npm install --production
-                  ```
-
-                  ### 5. Configure environment
-
-                  ```bash
-                  cp .env.example .env
-                  nano .env   # fill in all required values
-                  ```
-
-                  Critical production values:
-
-                  ```ini
-                  NODE_ENV=production
-                  PORT=3001
-                  APP_URL=https://yourdomain.com
-                  JWT_SECRET=<strong random 64-char secret>
-                  DATABASE_URL="file:/var/www/modern-blue-collar/backend/prisma/prod.db"
-
-                  # Brand tokens
-                  BRAND_COMPANY_NAME=Your Company LLC
-                  BRAND_TRADE_TYPE=electrical
-                  ```
-
-                  ### 6. Migrate & seed
-
-                  ```bash
-                  npm run migrate:prod
-                  npm run generate
-                  ADMIN_EMAIL=admin@yourdomain.com ADMIN_PASSWORD=SecurePass123! npm run seed:admin
-                  npm run seed:prices
-                  ```
-
-                  ### 7. Configure systemd service
-
-                  Create `/etc/systemd/system/modern-blue-collar.service`:
-
-                  ```ini
-                  [Unit]
-                  Description=Modern Blue Collar Platform
-                  After=network.target
-
-                  [Service]
-                  Type=simple
-                  User=www-data
-                  WorkingDirectory=/var/www/modern-blue-collar/backend
-                  EnvironmentFile=/var/www/modern-blue-collar/backend/.env
-                  ExecStart=/usr/bin/node server.js
-                  Restart=on-failure
-                  RestartSec=5
-                  StandardOutput=syslog
-                  StandardError=syslog
-                  SyslogIdentifier=modern-blue-collar
-
-                  [Install]
-                  WantedBy=multi-user.target
-                  ```
-
-                  ```bash
-                  sudo systemctl daemon-reload
-                  sudo systemctl enable modern-blue-collar
-                  sudo systemctl start modern-blue-collar
-                  sudo systemctl status modern-blue-collar
-                  ```
-
-                  ### 8. Configure Nginx
-
-                  Create `/etc/nginx/sites-available/modern-blue-collar`:
-
-                  ```nginx
-                  server {
-                      listen 80;
-                          server_name yourdomain.com www.yourdomain.com;
-
-                              location / {
-                                      proxy_pass         http://127.0.0.1:3001;
-                                              proxy_http_version 1.1;
-                                                      proxy_set_header   Upgrade $http_upgrade;
-                                                              proxy_set_header   Connection 'upgrade';
-                                                                      proxy_set_header   Host $host;
-                                                                              proxy_set_header   X-Real-IP $remote_addr;
-                                                                                      proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
-                                                                                              proxy_cache_bypass $http_upgrade;
-                                                                                                  }
-                                                                                                  }
-                                                                                                  ```
-
-                                                                                                  ```bash
-                                                                                                  sudo ln -s /etc/nginx/sites-available/modern-blue-collar /etc/nginx/sites-enabled/
-                                                                                                  sudo nginx -t
-                                                                                                  sudo systemctl reload nginx
-                                                                                                  ```
-
-                                                                                                  ### 9. Enable HTTPS
-
-                                                                                                  ```bash
-                                                                                                  sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
-                                                                                                  ```
-
-                                                                                                  Certbot auto-renews certificates. Verify with:
-
-                                                                                                  ```bash
-                                                                                                  sudo certbot renew --dry-run
-                                                                                                  ```
-
-                                                                                                  ---
-
-                                                                                                  ## Option B — Railway
-
-                                                                                                  1. Push this repo to GitHub.
-                                                                                                  2. Create a new Railway project → "Deploy from GitHub repo".
-                                                                                                  3. Set environment variables in the Railway dashboard (same keys as `.env.example`).
-                                                                                                  4. Railway auto-detects Node.js; set the **Start Command** to:
-                                                                                                     ```
-                                                                                                        cd backend && npm run migrate:prod && npm run generate && node server.js
-                                                                                                           ```
-                                                                                                           5. Set `DATABASE_URL` to a Railway-provisioned SQLite path or use their PostgreSQL plugin.
-                                                                                                           
-                                                                                                           > **Note:** SQLite is not recommended on Railway's ephemeral filesystem. Use `DATABASE_URL` pointing to a Railway Postgres instance and change the Prisma provider to `postgresql`.
-                                                                                                           
-                                                                                                           ---
-                                                                                                           
-                                                                                                           ## Option C — Render
-                                                                                                           
-                                                                                                           1. Create a new Web Service from your GitHub repo.
-                                                                                                           2. Set **Root Directory** to `backend`.
-                                                                                                           3. Set **Build Command**: `npm install && npx prisma generate`
-                                                                                                           4. Set **Start Command**: `npx prisma migrate deploy && node server.js`
-                                                                                                           5. Add all environment variables from `.env.example` in Render's dashboard.
-                                                                                                           
-                                                                                                           ---
-                                                                                                           
-                                                                                                           ## Option D — Fly.io
-                                                                                                           
-                                                                                                           ```bash
-                                                                                                           cd backend
-                                                                                                           fly launch   # generates fly.toml
-                                                                                                           fly secrets set JWT_SECRET="..." BRAND_COMPANY_NAME="..." BRAND_TRADE_TYPE="electrical"
-                                                                                                           fly deploy
-                                                                                                           ```
-                                                                                                           
-                                                                                                           ---
-                                                                                                           
-                                                                                                           ## Backups (Wasabi Cloud Storage)
-                                                                                                           
-                                                                                                           The platform runs a nightly backup at 03:00 (configured by `BRAND_TIMEZONE`).  
-                                                                                                           Backups are saved locally to `backend/backups/` AND uploaded to Wasabi cloud storage.
-                                                                                                           
-                                                                                                           Wasabi (https://wasabi.com) is an S3-compatible cloud storage provider with
-                                                                                                           no egress fees and low-cost storage — ideal for database backups.
-                                                                                                           
-                                                                                                           To configure Wasabi cloud backup, set these env vars:
-                                                                                                           
-                                                                                                           ```ini
-                                                                                                           WASABI_BUCKET=your-company-backups
-                                                                                                           WASABI_ACCESS_KEY=your_wasabi_access_key
-                                                                                                           WASABI_SECRET_KEY=your_wasabi_secret_key
-                                                                                                           WASABI_REGION=us-east-1
-                                                                                                           WASABI_ENDPOINT=https://s3.us-east-1.wasabisys.com
-                                                                                                           ```
-                                                                                                           
-                                                                                                           Wasabi regions: us-east-1, us-east-2, us-central-1, us-west-1, eu-central-1, eu-central-2, eu-west-1, eu-west-2, ap-northeast-1, ap-northeast-2, ap-southeast-1, ap-southeast-2.
-                                                                                                           
-                                                                                                           To trigger a manual backup:
-                                                                                                           
-                                                                                                           ```bash
-                                                                                                           cd backend
-                                                                                                           node -e "require('./backup').runBackup()"
-                                                                                                           ```
-                                                                                                           
-                                                                                                           If Wasabi credentials are not set, backups are local-only (still runs nightly).
-                                                                                                           
-                                                                                                           ---
-                                                                                                           
-                                                                                                           ## Third-Party Integrations
-                                                                                                           
-                                                                                                           ### Google OAuth (team invite flow)
-                                                                                                           1. Go to https://console.cloud.google.com → Credentials → Create OAuth 2.0 Client
-                                                                                                           2. Authorized redirect URI: `https://yourdomain.com/api/auth/google/callback`
-                                                                                                           3. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL` in `.env`
-                                                                                                           
-                                                                                                           ### QuickBooks Online
-                                                                                                           1. Go to https://developer.intuit.com → Create App
-                                                                                                           2. Redirect URI: `https://yourdomain.com/api/quickbooks/callback`
-                                                                                                           3. Set `QB_CLIENT_ID`, `QB_CLIENT_SECRET`, `QB_REDIRECT_URI`; set `QB_ENVIRONMENT=production`
-                                                                                                           
-                                                                                                           ### Twilio SMS
-                                                                                                           1. Go to https://twilio.com/console → Get a phone number
-                                                                                                           2. Set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
-                                                                                                           
-                                                                                                           ### Google Maps
-                                                                                                           1. Go to https://console.cloud.google.com → APIs → Maps JavaScript API → Create Key
-                                                                                                           2. Set `GOOGLE_MAPS_API_KEY`
-                                                                                                           
-                                                                                                           ---
-                                                                                                           
-                                                                                                           ## Health Check
-                                                                                                           
-                                                                                                           Once deployed, verify the server is healthy:
-                                                                                                           
-                                                                                                           ```bash
-                                                                                                           curl https://yourdomain.com/api/health
-                                                                                                           # Expected: {"message":"Your Company LLC Platform is running!","tradeType":"electrical",...}
-                                                                                                           ```
-                                                                                                           
-                                                                                                           ---
-                                                                                                           
-                                                                                                           ## Updating
-                                                                                                           
-                                                                                                           ```bash
-                                                                                                           cd /var/www/modern-blue-collar
-                                                                                                           git pull origin main
-                                                                                                           cd backend
-                                                                                                           npm install --production
-                                                                                                           npm run migrate:prod
-                                                                                                           npm run generate
-                                                                                                           sudo systemctl restart modern-blue-collar
-                                                                                                           ```
-                                                                                                           
-                                                                                                           ---
-                                                                                                           
-                                                                                                           ## Security Checklist
-                                                                                                           
-                                                                                                           - [ ] `NODE_ENV=production` is set
-                                                                                                           - [ ] `JWT_SECRET` is a random 64-char string (not the default)
-                                                                                                           - [ ] `.env` file permissions: `chmod 600 .env`
-                                                                                                           - [ ] Default admin password changed after first login
-                                                                                                           - [ ] HTTPS enabled with valid certificate
-                                                                                                           - [ ] Firewall: only ports 80, 443, 22 open externally
-                                                                                                           - [ ] `prisma/prod.db` is included in nightly backups
-                                                                                                           - [ ] Twilio phone number verified for the destination country
-                                                                                                           
+When moving from staging to production, add a DigitalOcean Managed PostgreSQL database and set DATABASE_URL as a component-level env var. Update the Prisma provider from sqlite to postgresql and run migrations. See STAGING.md for full details.
