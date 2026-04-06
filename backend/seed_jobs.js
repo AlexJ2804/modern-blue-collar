@@ -1,13 +1,10 @@
 /**
  * seed_jobs.js
- * Job/customer/team seed template — no data is pre-populated.
- * Each business must provide their own customers, team members, and jobs.
+ * Seed data for David Lies Plumbing Inc — Wichita, KS
+ * Family-owned full-service plumbing since 1978.
  *
- * To seed sample data, add entries to the arrays below
- * following the format shown in the examples, then run:
+ * Usage:
  *   node seed_jobs.js
- *
- * Or add customers, team, and jobs directly via the UI.
  */
 
 require('dotenv').config();
@@ -17,49 +14,40 @@ const brand = require('../brand.config');
 
 const prisma = new PrismaClient();
 
-// ── Add your team members here ──────────────────────────────────────────────
-// Example format (uncomment and customize):
-//
-// const TEAM = [
-//   { email: 'tech@yourcompany.com', firstName: 'First', lastName: 'Last', role: 'technician' },
-//   { email: 'dispatch@yourcompany.com', firstName: 'First', lastName: 'Last', role: 'dispatcher' },
-// ];
-//
+// ── Team members ────────────────────────────────────────────────────────────
 // Supported roles: super-admin | admin | technician | dispatcher | office
 
 const TEAM = [
-  { email: 'bob@allproplumbinghvac.com',   firstName: 'Bob',    lastName: 'Hiatt',    role: 'admin' },
-  { email: 'sara@allproplumbinghvac.com',  firstName: 'Sara',   lastName: 'Hiatt',    role: 'admin' },
-  { email: 'mike@allproplumbinghvac.com',  firstName: 'Mike',   lastName: 'Ramos',    role: 'technician' },
-  { email: 'jake@allproplumbinghvac.com',  firstName: 'Jake',   lastName: 'Townsend', role: 'technician' },
-  { email: 'lisa@allproplumbinghvac.com',  firstName: 'Lisa',   lastName: 'Chen',     role: 'dispatcher' },
+  { email: 'evan@davidliesplumbing.com',   firstName: 'Evan',   lastName: 'Lies',     role: 'admin' },
+  { email: 'office@davidliesplumbing.com',  firstName: 'Office', lastName: 'Manager',  role: 'dispatcher' },
 ];
+
+// ── Customers ───────────────────────────────────────────────────────────────
+// Supported types: residential | commercial | industrial
 
 const CUSTOMERS = [
-  { firstName: 'David',    lastName: 'Morrison',  phone: '316-555-0101', email: 'david.morrison@email.com',  address: '2415 N Woodlawn Blvd',  city: 'Wichita', state: 'KS', zip: '67220', type: 'residential' },
-  { firstName: 'Karen',    lastName: 'Phillips',  phone: '316-555-0102', email: 'karen.phillips@email.com',  address: '810 E Douglas Ave',      city: 'Wichita', state: 'KS', zip: '67202', type: 'residential' },
-  { firstName: 'Tom',      lastName: 'Nguyen',    phone: '316-555-0103', email: 'tom.nguyen@email.com',      address: '4320 W Maple St',        city: 'Wichita', state: 'KS', zip: '67209', type: 'residential' },
-  { firstName: 'Rachel',   lastName: 'Gomez',     phone: '316-555-0104', email: 'rachel.gomez@email.com',    address: '1100 S Seneca St',       city: 'Wichita', state: 'KS', zip: '67213', type: 'residential' },
-  { firstName: 'Midwest',  lastName: 'Dental Group', phone: '316-555-0201', email: 'office@midwestdental.com', address: '7700 E Kellogg Dr',   city: 'Wichita', state: 'KS', zip: '67207', type: 'commercial' },
-  { firstName: 'Sunrise',  lastName: 'Apartments',   phone: '316-555-0202', email: 'mgr@sunriseapts.com',     address: '3200 S Hydraulic Ave', city: 'Wichita', state: 'KS', zip: '67211', type: 'commercial' },
+  { firstName: 'Mark',     lastName: 'Henderson', phone: '316-555-0101', email: 'mark.henderson@email.com', address: '2840 N Rock Rd',      city: 'Wichita',    state: 'KS', zip: '67226', type: 'residential' },
+  { firstName: 'Susan',    lastName: 'Park',      phone: '316-555-0102', email: 'susan.park@email.com',     address: '615 W Douglas Ave',    city: 'Wichita',    state: 'KS', zip: '67213', type: 'residential' },
+  { firstName: 'Heritage', lastName: 'Baptist Church', phone: '316-555-0201', email: 'facilities@hbc.org',  address: '1500 N Meridian Ave',  city: 'Wichita',    state: 'KS', zip: '67203', type: 'commercial' },
+  { firstName: 'Janet',    lastName: 'Collins',   phone: '316-555-0103', email: 'janet.collins@email.com',  address: '4100 E 21st St',       city: 'Wichita',    state: 'KS', zip: '67208', type: 'residential' },
+  { firstName: 'Prairie',  lastName: 'Village Apartments', phone: '316-555-0202', email: 'mgr@prairievillage.com', address: '800 S Webb Rd', city: 'Wichita',    state: 'KS', zip: '67207', type: 'commercial' },
 ];
 
+// ── Jobs ────────────────────────────────────────────────────────────────────
+// Jobs reference customers and team members by array index (0-based).
+
 const JOBS = [
-  { title: 'Water Heater Replacement', type: 'Water Heater', status: 'scheduled',    priority: 'high',   customerIndex: 0, techIndex: 2, scheduledDate: '2026-04-01', scheduledTime: '08:00', duration: 3,   notes: 'Customer reports no hot water. 50-gal tank, gas. Quoted tankless upgrade.' },
-  { title: 'Kitchen Drain Backup',     type: 'Drain Cleaning', status: 'scheduled',  priority: 'normal', customerIndex: 1, techIndex: 3, scheduledDate: '2026-04-01', scheduledTime: '10:00', duration: 1.5, notes: 'Slow drain, possibly grease buildup. Bring snake & hydro-jet.' },
-  { title: 'AC Tune-Up',               type: 'Tune-Up',        status: 'scheduled',  priority: 'normal', customerIndex: 2, techIndex: 2, scheduledDate: '2026-04-02', scheduledTime: '09:00', duration: 1,   notes: 'Annual spring tune-up. Check refrigerant levels.' },
-  { title: 'Furnace Not Igniting',     type: 'Furnace Repair', status: 'pending',    priority: 'urgent', customerIndex: 3, techIndex: 3, scheduledDate: '2026-04-01', scheduledTime: '14:00', duration: 2,   notes: 'Furnace clicks but does not ignite. Likely ignitor or flame sensor.' },
-  { title: 'Restroom Fixture Remodel', type: 'Fixture Install', status: 'scheduled', priority: 'normal', customerIndex: 4, techIndex: 2, scheduledDate: '2026-04-03', scheduledTime: '07:00', duration: 6,   notes: '2 toilets + 3 faucets in patient restrooms. Work before office opens.' },
-  { title: 'Sewer Line Inspection',    type: 'Sewer Line',     status: 'pending',    priority: 'normal', customerIndex: 5, techIndex: 3, scheduledDate: '2026-04-04', scheduledTime: '08:00', duration: 2,   notes: 'Multiple units reporting slow drains. Camera inspect main line.' },
-  { title: 'Toilet Repair',            type: 'Leak Repair',    status: 'completed',  priority: 'low',    customerIndex: 1, techIndex: 2, scheduledDate: '2026-03-25', scheduledTime: '11:00', duration: 1,   notes: 'Running toilet — replaced flapper and fill valve.' },
-  { title: 'AC Install – Mini Split',  type: 'AC Install',     status: 'pending',    priority: 'normal', customerIndex: 0, techIndex: 2, scheduledDate: '2026-04-07', scheduledTime: '08:00', duration: 5,   notes: 'Ductless mini-split for garage workshop. Single zone.' },
+  { title: 'Water Heater Replacement',  type: 'Water Heater',    status: 'scheduled',  priority: 'high',   customerIndex: 0, techIndex: null, scheduledDate: '2026-04-07', scheduledTime: '08:00', duration: 3,   notes: 'Gas water heater leaking from bottom. Customer wants same-day if possible.' },
+  { title: 'Kitchen Drain Clog',         type: 'Drain Cleaning',  status: 'scheduled',  priority: 'normal', customerIndex: 1, techIndex: null, scheduledDate: '2026-04-07', scheduledTime: '10:30', duration: 1.5, notes: 'Standing water in kitchen sink. Snake first, hydro-jet if needed.' },
+  { title: 'Backflow Test – Annual',     type: 'Inspection',      status: 'pending',    priority: 'normal', customerIndex: 2, techIndex: null, scheduledDate: '2026-04-08', scheduledTime: '09:00', duration: 1,   notes: 'Annual backflow preventer certification.' },
+  { title: 'Toilet Running Constantly',  type: 'Fixture Install', status: 'scheduled',  priority: 'low',    customerIndex: 3, techIndex: null, scheduledDate: '2026-04-08', scheduledTime: '13:00', duration: 1,   notes: 'Upstairs guest bath. Likely fill valve or flapper.' },
+  { title: 'Sewer Camera Inspection',    type: 'Sewer Line',      status: 'pending',    priority: 'normal', customerIndex: 4, techIndex: null, scheduledDate: '2026-04-09', scheduledTime: '08:00', duration: 2,   notes: 'Building A — multiple units slow drains. Camera main line.' },
+  { title: 'Water Softener Install',     type: 'Troubleshooting', status: 'pending',    priority: 'normal', customerIndex: 0, techIndex: null, scheduledDate: '2026-04-10', scheduledTime: '08:00', duration: 3,   notes: 'New construction. Customer chose unit from showroom.' },
 ];
 
 async function main() {
   if (TEAM.length === 0 && CUSTOMERS.length === 0 && JOBS.length === 0) {
     console.log('No seed data to create.');
-    console.log('Add your team members, customers, and jobs to the arrays in seed_jobs.js,');
-    console.log('or add them directly via the UI.');
     return;
   }
 
