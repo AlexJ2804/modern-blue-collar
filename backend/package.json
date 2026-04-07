@@ -4,7 +4,7 @@
     "description": "White-label field service management backend — electrical, plumbing, HVAC, contracting",
     "main": "server.js",
     "scripts": {
-        "start": "node server.js",
+        "start": "npx prisma db push --skip-generate --accept-data-loss && node server.js",
         "dev": "nodemon server.js",
         "build": "npx prisma generate && npx prisma migrate deploy",
         "postinstall": "npx prisma generate",
