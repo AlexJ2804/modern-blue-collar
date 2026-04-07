@@ -27,14 +27,88 @@ These three variables are required at startup. Set them in DigitalOcean: Setting
 
 DigitalOcean health-checks port 8080 by default. Without PORT=8080 the app starts on 3001 and the health check kills the container. Without JWT_SECRET the auth middleware crashes on startup.
 
+---
+
+## Stack
+
+Node.js/Express · Prisma ORM · PostgreSQL · Plain HTML/CSS/JS · GitHub repo (source directory: `backend/`)
+
+---
+
+## Google OAuth Setup
+
+1. Go to **Google Cloud Console → Google Auth Platform → Clients → Create Client**
+2. Type: **Web application**
+3. Add JS Origin: `https://your-app.ondigitalocean.app`
+4. Add Redirect URI: `https://your-app.ondigitalocean.app/api/auth/google/callback`
+5. **Immediately download the JSON** — you only get one chance to see the secret
+6. **Hardcode both values** directly in your auth route — no `process.env` fallback:
+   ```js
+   const clientId = '...apps.googleusercontent.com';
+   const clientSecret = 'GOCSPX-...';
+   ```
+7. **Critical:** DigitalOcean env vars (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) will **override** any `process.env.X || 'hardcoded'` fallback — the env var always wins. Either hardcode with no fallback, or keep env vars perfectly in sync. Hardcoding is simpler for now.
+8. Keep only **one enabled secret** per client at a time. Multiple enabled secrets causes `invalid_client` errors.
+
+---
+
+## Database Setup
+
+**Dev database ($7/mo) — works fine for testing with this fix:**
+
+The DO dev database user doesn't have schema creation permissions, so `prisma migrate deploy` fails with `permission denied for schema public`.
+
+**The fix:** Use `prisma db push` instead. It syncs the schema without needing migration history table permissions.
+
+**Two places this must be set — both matter:**
+
+1. **`backend/package.json`:**
+   ```json
+   "start": "npx prisma db push --skip-generate --accept-data-loss && node server.js"
+   ```
+
+2. **`backend/Procfile`:**
+   ```
+   web: npx prisma db push --skip-generate --accept-data-loss && node server.js
+   ```
+
+3. **DigitalOcean App Platform → Settings → component → Commands → Run Command:**
+   Set to: `npm start`
+   *(This is the critical one — DO's hardcoded run command overrides both the Procfile and package.json unless you explicitly set it to `npm start`)*
+
+---
+
+## DigitalOcean App Platform Gotchas
+
+- **Env vars override hardcoded fallbacks** — stale env vars from old deploys will silently win over `process.env.X || 'new-value'` in code
+- **The Procfile is ignored** if DO has a custom Run Command set in the app settings UI
+- **The Run Command in DO settings** takes priority over everything — always set it to `npm start` so package.json controls the actual command
+- **Dev DB = $7/mo**, Managed DB = $15/mo. Dev DB works fine with `prisma db push`; avoid the managed DB unless you need backups/failover
+- **Total cost for testing:** $5 (web) + $7 (dev DB) = **$12/mo**
+
+---
+
 ## First Deployment Steps (in order)
 
 1. Confirm source directory is set to `backend` in DigitalOcean component settings
 2. Confirm all dependencies are in `backend/package.json`
 3. Run `cd backend && npm install` and commit both `package.json` and `package-lock.json`
 4. Merge all changes to `main` and push
-5. Add PORT, JWT_SECRET, NODE_ENV as component-level env vars in DigitalOcean
+5. Add PORT, JWT_SECRET, NODE_ENV, DATABASE_URL as component-level env vars in DigitalOcean
 6. Watch the deploy logs — build phase should pass before deploy phase
+
+---
+
+## Deployment Checklist for New Clients
+
+- [ ] Create Google OAuth client, download JSON immediately
+- [ ] Hardcode `clientId` and `clientSecret` with no `process.env` fallback
+- [ ] Set Procfile and package.json start script to `prisma db push && node server.js`
+- [ ] In DO App Settings → Run Command → set to `npm start`
+- [ ] Remove stale `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` env vars from DO (or delete them entirely since values are hardcoded)
+- [ ] First deploy: login, run seed via browser console
+
+---
 
 ## Common Errors and Fixes
 
@@ -48,6 +122,6 @@ DigitalOcean health-checks port 8080 by default. Without PORT=8080 the app start
 
 **"Sorry, we couldn't find an app in your repo"** → Source Directory is not set to `backend`.
 
-## Production Upgrade (at client handover)
+**"permission denied for schema public"** → Using `prisma migrate deploy` with a dev database. Switch to `prisma db push` in the start script.
 
-When moving from staging to production, add a DigitalOcean Managed PostgreSQL database and set DATABASE_URL as a component-level env var. Update the Prisma provider from sqlite to postgresql and run migrations. See STAGING.md for full details.
+**"invalid_client" on Google OAuth** → Multiple OAuth secrets enabled, or stale `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` env vars in DO overriding hardcoded values.
