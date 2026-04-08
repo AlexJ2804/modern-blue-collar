@@ -20,7 +20,7 @@
                          active:   active === 'false' ? false : true,
                              };
                                  if (category) where.category = category;
-                                     if (search)   where.name = { contains: search };
+                                     if (search)   where.name = { contains: search, mode: 'insensitive' };
 
                                          const items = await prisma.priceBookItem.findMany({
                                                where,

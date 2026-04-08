@@ -1,11 +1,13 @@
 /**
  * routes/quotes.js  — Quote CRUD
  * status: draft | sent | approved | declined
+ * Includes optimistic locking on PATCH (version field).
  */
 const express          = require('express');
 const router           = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const { requireAuth }  = require('./auth');
+const { optimisticUpdate } = require('../helpers/optimisticUpdate');
 const prisma           = new PrismaClient();
 
 router.get('/',     requireAuth, async (req, res, next) => {
@@ -36,9 +38,24 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
   try {
     const data = { ...req.body };
     if (data.amount) data.amount = Number(data.amount);
-    const q = await prisma.quote.update({ where: { id: Number(req.params.id) }, data });
+    const q = await optimisticUpdate('quote', Number(req.params.id), data);
     res.json(q);
-  } catch (e) { next(e); }
+  } catch (e) {
+    if (e.status === 409) return res.status(409).json({ error: e.message });
+    next(e);
+  }
+});
+
+router.put('/:id', requireAuth, async (req, res, next) => {
+  try {
+    const data = { ...req.body };
+    if (data.amount) data.amount = Number(data.amount);
+    const q = await optimisticUpdate('quote', Number(req.params.id), data);
+    res.json(q);
+  } catch (e) {
+    if (e.status === 409) return res.status(409).json({ error: e.message });
+    next(e);
+  }
 });
 
 router.delete('/:id', requireAuth, async (req, res, next) => {

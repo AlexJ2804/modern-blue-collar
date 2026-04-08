@@ -1,6 +1,7 @@
 /**
  * routes/jobs.js
  * CRUD for Jobs. Trade type is derived from brand.config.js.
+ * Includes optimistic locking on PATCH (version field).
  *
  * Endpoints:
  *   GET    /api/jobs               — list all jobs (with customer & technician)
@@ -15,6 +16,7 @@ const express      = require('express');
 const router       = express.Router();
 const { PrismaClient } = require('@prisma/client');
 const { requireAuth }  = require('./auth');
+const { optimisticUpdate } = require('../helpers/optimisticUpdate');
 const brand        = require('../../brand.config');
 
 const prisma = new PrismaClient();
@@ -97,7 +99,7 @@ router.post('/', requireAuth, async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-// ── PATCH /api/jobs/:id ────────────────────────────────────────────────────────
+// ── PATCH /api/jobs/:id — with optimistic locking ────────────────────────────
 router.patch('/:id', requireAuth, async (req, res, next) => {
     try {
           const id   = Number(req.params.id);
@@ -113,13 +115,38 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
               data.completedAt = new Date();
       }
 
-      const job = await prisma.job.update({
-              where: { id },
-              data,
+      const job = await optimisticUpdate('job', id, data, {
               include: { customer: true, technician: { select: { id: true, firstName: true, lastName: true } } },
       });
           res.json(job);
-    } catch (err) { next(err); }
+    } catch (err) {
+      if (err.status === 409) return res.status(409).json({ error: err.message });
+      next(err);
+    }
+});
+
+// ── PUT /api/jobs/:id — alias for PATCH with optimistic locking ──────────────
+router.put('/:id', requireAuth, async (req, res, next) => {
+    try {
+          const id   = Number(req.params.id);
+          const data = { ...req.body };
+
+      if (data.customerId)   data.customerId   = Number(data.customerId);
+          if (data.technicianId) data.technicianId = Number(data.technicianId);
+          if (data.duration)     data.duration     = Number(data.duration);
+
+      if (data.status === 'completed' && !data.completedAt) {
+              data.completedAt = new Date();
+      }
+
+      const job = await optimisticUpdate('job', id, data, {
+              include: { customer: true, technician: { select: { id: true, firstName: true, lastName: true } } },
+      });
+          res.json(job);
+    } catch (err) {
+      if (err.status === 409) return res.status(409).json({ error: err.message });
+      next(err);
+    }
 });
 
 // ── DELETE /api/jobs/:id ───────────────────────────────────────────────────────

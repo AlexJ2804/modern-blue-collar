@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Keys</title>
+  <style>
+    :root{--color-primary:#2563eb;--color-primary-dark:#1d4ed8;--color-nav-bg:#1e293b;--color-nav-text:#f1f5f9;--color-accent:#f59e0b;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:system-ui,sans-serif;background:#f8fafc;color:#1e293b;}
+    nav{background:var(--color-nav-bg);color:var(--color-nav-text);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+    .nav-brand{font-weight:700;font-size:1.1rem;display:flex;align-items:center;gap:0.5rem;}
+    .trade-badge{font-size:0.65rem;background:var(--color-accent);color:#1e293b;padding:2px 8px;border-radius:99px;font-weight:700;}
+    .nav-links{display:flex;gap:1.5rem;font-size:0.9rem;}
+    .nav-links a{color:#94a3b8;text-decoration:none;}
+    .nav-links a:hover,.nav-links a.active{color:#fff;}
+    .nav-right{display:flex;align-items:center;gap:1rem;}
+    .nav-user{font-size:0.85rem;color:#94a3b8;}
+    .btn-logout{background:none;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;font-size:0.8rem;}
+    main{max-width:900px;margin:2rem auto;padding:0 1.5rem;}
+    .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
+    h2{font-size:1.4rem;}
+    .btn-primary{padding:0.5rem 1.1rem;background:var(--color-primary);color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;font-weight:600;}
+    .card{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.07);overflow:hidden;margin-bottom:1.25rem;}
+    .info-banner{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:1rem 1.25rem;margin-bottom:1.5rem;font-size:0.875rem;color:#1e40af;line-height:1.5;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{padding:0.75rem 1rem;text-align:left;font-size:0.875rem;}
+    th{background:#f8fafc;color:#64748b;font-weight:600;border-bottom:1px solid #e2e8f0;}
+    td{border-bottom:1px solid #f1f5f9;}
+    .badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:0.75rem;font-weight:600;}
+    .badge-active{background:#dcfce7;color:#15803d;}
+    .badge-revoked{background:#fee2e2;color:#b91c1c;}
+    .prefix{font-family:monospace;background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:0.8rem;}
+    .scope-tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:0.7rem;font-weight:600;background:#ede9fe;color:#6d28d9;margin-right:2px;}
+    .btn-revoke{padding:0.3rem 0.7rem;background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;border-radius:6px;font-size:0.8rem;cursor:pointer;font-weight:500;}
+    .btn-revoke:hover{background:#fca5a5;}
+    .empty{text-align:center;padding:3rem;color:#94a3b8;}
+    .muted{color:#94a3b8;font-size:0.8rem;}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:#fff;border-radius:12px;padding:2rem;width:100%;max-width:500px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+    .modal h3{font-size:1.1rem;margin-bottom:1.25rem;}
+    .form-group{margin-bottom:1rem;}
+    .form-group label{display:block;font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:0.4rem;}
+    .form-group input,.form-group select{width:100%;padding:0.6rem 0.9rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;}
+    .modal-footer{display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1.5rem;}
+    .btn-cancel{padding:0.5rem 1rem;background:#f1f5f9;color:#475569;border:none;border-radius:8px;cursor:pointer;font-size:0.9rem;}
+    .key-reveal{background:#fefce8;border:2px solid #facc15;border-radius:10px;padding:1.25rem;margin-top:1rem;}
+    .key-reveal h4{font-size:0.9rem;color:#854d0e;margin-bottom:0.75rem;}
+    .key-value{font-family:monospace;font-size:0.85rem;word-break:break-all;background:#fff;padding:0.75rem;border:1px solid #e5e7eb;border-radius:6px;margin-bottom:0.75rem;user-select:all;}
+    .btn-copy{padding:0.4rem 0.9rem;background:#facc15;color:#854d0e;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;font-weight:600;}
+    .modal-error{color:#b91c1c;font-size:0.85rem;display:none;margin-top:0.5rem;}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">
+    <span id="nav-company">Dashboard</span>
+    <span class="trade-badge" id="nav-trade">TRADE</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html">Dashboard</a>
+    <a href="customers.html">Customers</a>
+    <a href="dispatch.html">Dispatch</a>
+    <a href="schedule.html">Schedule</a>
+    <a href="team.html" id="nav-team-label">Team</a>
+    <a href="pricebook.html">Pricebook</a>
+    <a href="quote-invoice.html">Quotes &amp; Invoices</a>
+    <a href="api-keys.html" class="active">API Keys</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user-name"></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<main>
+  <div class="page-header">
+    <h2>API Keys</h2>
+    <button class="btn-primary" onclick="openModal()">+ New API Key</button>
+  </div>
+  <div class="info-banner">
+    API keys let external services (QuickBooks, Twilio, Square, Basecamp, etc.) connect to your platform securely. Include the key in the <strong>X-API-Key</strong> header with every request. Keys are shown only once at creation — store them safely.
+  </div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Prefix</th>
+          <th>Scopes</th>
+          <th>Status</th>
+          <th>Last Used</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="keys-tbody"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Create Key Modal -->
+<div class="modal-overlay" id="create-modal">
+  <div class="modal">
+    <h3>Create API Key</h3>
+    <div class="form-group">
+      <label>Name / Label</label>
+      <input type="text" id="f-name" placeholder="e.g. QuickBooks Sync, Twilio SMS, Square POS" />
+    </div>
+    <div class="form-group">
+      <label>Scopes</label>
+      <select id="f-scopes">
+        <option value="read,write">Read &amp; Write (full access)</option>
+        <option value="read">Read Only</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Expires (optional)</label>
+      <input type="date" id="f-expires" />
+    </div>
+    <div class="modal-error" id="modal-error"></div>
+    <div id="key-result"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Close</button>
+      <button class="btn-primary" id="btn-create" onclick="createKey()">Create Key</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='';let brand={};let token=localStorage.getItem('token');
+async function loadBrand(){try{const r=await fetch(API+'/api/brand');brand=await r.json();document.title=brand.companyName+' - API Keys';document.getElementById('nav-company').textContent=brand.companyName;document.getElementById('nav-trade').textContent=(brand.tradeType||'trade').toUpperCase();document.getElementById('nav-team-label').textContent=(brand.technicianLabel||'Technician')+'s';if(brand.colors){const s=document.documentElement.style;if(brand.colors.primary)s.setProperty('--color-primary',brand.colors.primary);if(brand.colors.primaryDark)s.setProperty('--color-primary-dark',brand.colors.primaryDark);if(brand.colors.navBg)s.setProperty('--color-nav-bg',brand.colors.navBg);if(brand.colors.navText)s.setProperty('--color-nav-text',brand.colors.navText);if(brand.colors.accent)s.setProperty('--color-accent',brand.colors.accent);}}catch(e){console.warn(e);}}
+function logout(){localStorage.removeItem('token');location.href='index.html';}
+
+async function init(){
+  await loadBrand();
+  if(!token){location.href='index.html';return;}
+  const r=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});
+  if(!r.ok){location.href='index.html';return;}
+  const me=await r.json();
+  document.getElementById('nav-user-name').textContent=me.name||me.firstName+' '+me.lastName||me.email;
+  if(me.role!=='super-admin'&&me.role!=='admin'){
+    document.querySelector('main').innerHTML='<div class="empty" style="padding:4rem;">You need admin access to manage API keys.</div>';
+    return;
+  }
+  loadKeys();
+}
+
+async function loadKeys(){
+  try{
+    const r=await fetch(API+'/api/api-keys',{headers:{Authorization:'Bearer '+token}});
+    if(!r.ok)throw new Error('Failed to load');
+    const keys=await r.json();
+    const tb=document.getElementById('keys-tbody');
+    if(!keys.length){
+      tb.innerHTML='<tr><td colspan="7" class="empty">No API keys yet. Create one to get started.</td></tr>';
+      return;
+    }
+    tb.innerHTML=keys.map(k=>{
+      const scopes=k.scopes.split(',').map(s=>'<span class="scope-tag">'+s.trim()+'</span>').join('');
+      const status=k.active?'<span class="badge badge-active">Active</span>':'<span class="badge badge-revoked">Revoked</span>';
+      const lastUsed=k.lastUsedAt?new Date(k.lastUsedAt).toLocaleDateString():'<span class="muted">Never</span>';
+      const created=new Date(k.createdAt).toLocaleDateString();
+      const createdBy=k.createdBy?k.createdBy.firstName+' '+k.createdBy.lastName:'';
+      const revokeBtn=k.active?'<button class="btn-revoke" onclick="revokeKey('+k.id+',\''+k.name.replace(/'/g,"\\'")+'\')">Revoke</button>':'';
+      return '<tr><td><strong>'+k.name+'</strong><br><span class="muted">by '+createdBy+'</span></td><td><span class="prefix">'+k.prefix+'****</span></td><td>'+scopes+'</td><td>'+status+'</td><td>'+lastUsed+'</td><td>'+created+'</td><td>'+revokeBtn+'</td></tr>';
+    }).join('');
+  }catch(e){
+    document.getElementById('keys-tbody').innerHTML='<tr><td colspan="7" class="empty" style="color:#ef4444">Failed to load API keys.</td></tr>';
+  }
+}
+
+function openModal(){
+  document.getElementById('f-name').value='';
+  document.getElementById('f-scopes').value='read,write';
+  document.getElementById('f-expires').value='';
+  document.getElementById('key-result').innerHTML='';
+  document.getElementById('modal-error').style.display='none';
+  document.getElementById('btn-create').style.display='';
+  document.getElementById('create-modal').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('create-modal').classList.remove('open');
+  loadKeys();
+}
+
+async function createKey(){
+  const name=document.getElementById('f-name').value.trim();
+  if(!name){showErr('Name is required');return;}
+  const body={
+    name:name,
+    scopes:document.getElementById('f-scopes').value,
+    expiresAt:document.getElementById('f-expires').value||null
+  };
+  try{
+    const r=await fetch(API+'/api/api-keys',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:JSON.stringify(body)
+    });
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Failed');
+    // Show the key once
+    document.getElementById('btn-create').style.display='none';
+    document.getElementById('key-result').innerHTML=
+      '<div class="key-reveal">'+
+      '<h4>Your API Key (save this now — it will not be shown again)</h4>'+
+      '<div class="key-value" id="key-text">'+d.key+'</div>'+
+      '<button class="btn-copy" onclick="copyKey()">Copy to Clipboard</button>'+
+      '</div>';
+  }catch(e){showErr(e.message);}
+}
+
+function copyKey(){
+  const text=document.getElementById('key-text').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.querySelector('.btn-copy');
+    btn.textContent='Copied!';
+    setTimeout(()=>btn.textContent='Copy to Clipboard',2000);
+  });
+}
+
+async function revokeKey(id,name){
+  if(!confirm('Revoke API key "'+name+'"? Any service using this key will immediately lose access.'))return;
+  try{
+    const r=await fetch(API+'/api/api-keys/'+id,{
+      method:'DELETE',
+      headers:{Authorization:'Bearer '+token}
+    });
+    if(!r.ok)throw new Error('Failed');
+    loadKeys();
+  }catch(e){alert('Failed to revoke: '+e.message);}
+}
+
+function showErr(msg){const el=document.getElementById('modal-error');el.textContent=msg;el.style.display='block';}
+
+init();
+</script>
+</body>
+</html>
