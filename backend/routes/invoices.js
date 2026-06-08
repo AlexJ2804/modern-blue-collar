@@ -6,9 +6,13 @@
 const express          = require('express');
 const router           = express.Router();
 const { PrismaClient } = require('@prisma/client');
-const { requireAuth }  = require('./auth');
+const { requireAuth, requireRole } = require('./auth');
 const { optimisticUpdate } = require('../helpers/optimisticUpdate');
 const prisma           = new PrismaClient();
+
+// TODO: make this a per-deployment permission setting rather than a hardcoded
+// role list, so clients can map other roles (e.g. `office`) to billing writes.
+const BILLING_ROLES = ['admin', 'super-admin']; // per-deployment knob until permissions are configurable
 
 router.get('/', requireAuth, async (req, res, next) => {
   try {
@@ -34,7 +38,7 @@ router.get('/:id', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', requireAuth, async (req, res, next) => {
+router.post('/', requireAuth, requireRole(...BILLING_ROLES), async (req, res, next) => {
   try {
     const { jobId, amount, dueDate, notes } = req.body;
     if (!jobId || amount == null) return res.status(400).json({ error: 'jobId and amount are required' });
@@ -45,7 +49,7 @@ router.post('/', requireAuth, async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.patch('/:id', requireAuth, async (req, res, next) => {
+router.patch('/:id', requireAuth, requireRole(...BILLING_ROLES), async (req, res, next) => {
   try {
     const data = { ...req.body };
     if (data.amount)  data.amount  = Number(data.amount);
@@ -59,7 +63,7 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
   }
 });
 
-router.put('/:id', requireAuth, async (req, res, next) => {
+router.put('/:id', requireAuth, requireRole(...BILLING_ROLES), async (req, res, next) => {
   try {
     const data = { ...req.body };
     if (data.amount)  data.amount  = Number(data.amount);
@@ -73,7 +77,7 @@ router.put('/:id', requireAuth, async (req, res, next) => {
   }
 });
 
-router.delete('/:id', requireAuth, async (req, res, next) => {
+router.delete('/:id', requireAuth, requireRole(...BILLING_ROLES), async (req, res, next) => {
   try {
     await prisma.invoice.delete({ where: { id: Number(req.params.id) } });
     res.json({ success: true });

@@ -7,6 +7,26 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { requireRole } = require('../routes/auth');
+
+// Billing writes (invoices/quotes) are gated to these roles. Keep in sync with
+// BILLING_ROLES in routes/invoices.js and routes/quotes.js.
+const BILLING_ROLES = ['admin', 'super-admin'];
+
+// Run an Express-style middleware against a fake req/res and capture the result.
+// Returns { status, body, nextCalled } so we can assert on guard behaviour.
+function runMiddleware(mw, user) {
+  return new Promise((resolve) => {
+    const req = { user };
+    let settled = false;
+    const res = {
+      statusCode: 200,
+      status(code) { this.statusCode = code; return this; },
+      json(body) { if (!settled) { settled = true; resolve({ status: this.statusCode, body, nextCalled: false }); } },
+    };
+    mw(req, res, () => { if (!settled) { settled = true; resolve({ status: 200, body: null, nextCalled: true }); } });
+  });
+}
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key';
@@ -513,6 +533,18 @@ async function roleTests() {
   await test('User active flag defaults to true', async () => {
     assert(adminUser.active === true);
     assert(techUser.active === true);
+  });
+
+  // ── Billing role guard (invoices/quotes write gating) ──────────────────────
+  await test('Technician is blocked (403) from billing writes (POST /api/invoices)', async () => {
+    const result = await runMiddleware(requireRole(...BILLING_ROLES), jwt.verify(techToken, JWT_SECRET));
+    assertEqual(result.status, 403, 'Technician should be forbidden from billing writes');
+    assert(!result.nextCalled, 'Guard should not call next() for a technician');
+  });
+
+  await test('Super-admin is allowed through billing write guard', async () => {
+    const result = await runMiddleware(requireRole(...BILLING_ROLES), jwt.verify(adminToken, JWT_SECRET));
+    assert(result.nextCalled, 'Super-admin should pass the billing write guard');
   });
 
   await test('Can deactivate user', async () => {

@@ -97,7 +97,7 @@
           <option value="cancelled">Cancelled</option>
         </select>
         <button class="btn-sm" onclick="saveNotes()">Save Notes</button>
-        <button class="btn-sm" onclick="createInvoice()">Create Invoice</button>
+        <button id="btn-create-invoice" class="btn-sm" onclick="createInvoice()">Create Invoice</button>
         <button class="btn-outline" onclick="sendSMS()">Send SMS</button>
       </div>
     </div>
@@ -165,6 +165,11 @@ async function init(){
   const mr=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});
   if(!mr.ok){location.href='index.html';return;}
   currentUser=await mr.json();
+  // Billing controls are admin-only (mirrors api-keys.html). Server still enforces this.
+  if(currentUser.role!=='admin'&&currentUser.role!=='super-admin'){
+    const b=document.getElementById('btn-create-invoice');
+    if(b)b.style.display='none';
+  }
   document.getElementById('nav-user-name').textContent=currentUser.firstName+' '+currentUser.lastName;
 
   // Join presence room
