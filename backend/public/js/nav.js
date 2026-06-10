@@ -13,14 +13,15 @@
   const ADMIN_ROLES = ['admin', 'super-admin'];
   const isAdmin = (role) => ADMIN_ROLES.includes(role);
 
-  // Where technicians are sent when they hit an admin-only page.
-  // Stage 3 repoints this at my-jobs.html.
-  const TECH_HOME = 'schedule.html';
+  // Where technicians are sent when they hit an admin-only page (their home).
+  const TECH_HOME = 'my-jobs.html';
 
   // Pages a technician may open directly. Everything else is admin-only.
-  const TECH_PAGES = ['schedule.html', 'job.html'];
+  const TECH_PAGES = ['my-jobs.html', 'schedule.html', 'job.html'];
   // Nav links (by href) a technician may see. Everything else is admin-only.
-  const TECH_NAV_HREFS = ['schedule.html'];
+  const TECH_NAV_HREFS = ['my-jobs.html', 'schedule.html'];
+  // Links shown ONLY to technicians (hidden from admins) — the tech home.
+  const TECH_ONLY_HREFS = ['my-jobs.html'];
 
   function currentPage() {
     return (location.pathname.split('/').pop() || 'index.html');
@@ -36,7 +37,8 @@
     const page = currentPage();
     document.querySelectorAll('nav .nav-links a').forEach((a) => {
       const href = hrefFile(a);
-      const allowed = admin || TECH_NAV_HREFS.includes(href);
+      // Admins see everything except tech-only links; techs see only their links.
+      const allowed = admin ? !TECH_ONLY_HREFS.includes(href) : TECH_NAV_HREFS.includes(href);
       a.style.display = allowed ? '' : 'none';
       a.classList.toggle('active', href === page);
     });

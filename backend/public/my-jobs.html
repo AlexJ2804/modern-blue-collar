@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Jobs</title>
+  <style>
+    :root{--color-primary:#2563eb;--color-primary-dark:#1d4ed8;--color-nav-bg:#1e293b;--color-nav-text:#f1f5f9;--color-accent:#f59e0b;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:system-ui,sans-serif;background:#f8fafc;color:#1e293b;}
+    nav{background:var(--color-nav-bg);color:var(--color-nav-text);padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+    .nav-brand{font-weight:700;font-size:1.1rem;display:flex;align-items:center;gap:0.5rem;}
+    .trade-badge{font-size:0.65rem;background:var(--color-accent);color:#1e293b;padding:2px 8px;border-radius:99px;font-weight:700;}
+    .nav-links{display:flex;gap:1.5rem;font-size:0.9rem;}
+    .nav-links a{color:#94a3b8;text-decoration:none;}
+    .nav-links a:hover,.nav-links a.active{color:#fff;}
+    .nav-right{display:flex;align-items:center;gap:1rem;}
+    .nav-user{font-size:0.85rem;color:#94a3b8;}
+    .btn-logout{background:none;border:1px solid #475569;color:#94a3b8;border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer;font-size:0.8rem;}
+    main{max-width:680px;margin:1.5rem auto;padding:0 1rem 3rem;}
+    h2{font-size:1.4rem;margin-bottom:0.25rem;}
+    .subtitle{color:#64748b;font-size:0.875rem;margin-bottom:1.5rem;}
+    .section-title{font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;color:#94a3b8;font-weight:700;margin:1.5rem 0 0.75rem;}
+    .job-card{display:block;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.08);padding:1rem 1.1rem;margin-bottom:0.85rem;text-decoration:none;color:inherit;border-left:4px solid var(--color-primary);}
+    .job-card:active{transform:scale(0.99);}
+    .job-card .top{display:flex;justify-content:space-between;align-items:center;gap:0.5rem;margin-bottom:0.4rem;}
+    .job-card .time{font-weight:700;font-size:1rem;color:var(--color-primary-dark);}
+    .job-card .type{font-size:0.85rem;color:#475569;font-weight:600;}
+    .job-card .cust{font-size:0.95rem;font-weight:600;margin-bottom:0.15rem;}
+    .job-card .addr{font-size:0.85rem;color:#64748b;}
+    .badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:0.72rem;font-weight:700;white-space:nowrap;}
+    .badge-pending{background:#dbeafe;color:#1d4ed8;}
+    .badge-scheduled{background:#fef3c7;color:#b45309;}
+    .badge-in-progress{background:#fed7aa;color:#c2410c;}
+    .badge-completed{background:#dcfce7;color:#15803d;}
+    .badge-cancelled{background:#fee2e2;color:#b91c1c;}
+    .empty{text-align:center;padding:3rem 1rem;color:#94a3b8;}
+    @media(max-width:480px){nav .nav-links{gap:1rem;font-size:0.8rem;}main{margin-top:1rem;}}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-brand">
+    <span id="nav-company">Dashboard</span>
+    <span class="trade-badge" id="nav-trade">TRADE</span>
+  </div>
+  <div class="nav-links">
+    <a href="my-jobs.html" class="active">My Jobs</a>
+    <a href="schedule.html">Schedule</a>
+  </div>
+  <div class="nav-right">
+    <span class="nav-user" id="nav-user-name"></span>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+<main>
+  <h2 id="page-title">My Jobs</h2>
+  <div class="subtitle" id="subtitle">Your assigned work</div>
+  <div id="content"><div class="empty">Loading…</div></div>
+</main>
+
+<script src="js/nav.js"></script>
+<script>
+const API='';let brand={};let token=localStorage.getItem('token');
+async function loadBrand(){try{const r=await fetch(API+'/api/brand');brand=await r.json();document.title=brand.companyName+' - My Jobs';document.getElementById('nav-company').textContent=brand.companyName;document.getElementById('nav-trade').textContent=(brand.tradeType||'trade').toUpperCase();if(brand.colors){const s=document.documentElement.style;if(brand.colors.primary)s.setProperty('--color-primary',brand.colors.primary);if(brand.colors.primaryDark)s.setProperty('--color-primary-dark',brand.colors.primaryDark);if(brand.colors.navBg)s.setProperty('--color-nav-bg',brand.colors.navBg);if(brand.colors.navText)s.setProperty('--color-nav-text',brand.colors.navText);if(brand.colors.accent)s.setProperty('--color-accent',brand.colors.accent);}}catch(e){console.warn(e);}}
+function logout(){localStorage.removeItem('token');location.href='index.html';}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function todayStr(){const d=new Date();const p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate());}
+function timeToMinutes(t){if(!t)return 1e9;const m=String(t).match(/(\d{1,2}):(\d{2})/);return m?(+m[1])*60+(+m[2]):1e9;}
+function fmtTime(t){return t?String(t):'—';}
+function custName(c){return c?((c.firstName||'')+' '+(c.lastName||'')).trim():'';}
+function custAddr(c){if(!c)return '';return [c.address,c.city,c.state].filter(Boolean).join(', ');}
+function card(j){const c=j.customer;const status=j.status||'pending';
+  return '<a class="job-card" href="job.html?id='+j.id+'">'+
+    '<div class="top"><span class="time">'+esc(fmtTime(j.scheduledTime))+'</span>'+
+    '<span class="badge badge-'+esc(status)+'">'+esc(status)+'</span></div>'+
+    '<div class="type">'+esc(j.type||j.title||'Job')+'</div>'+
+    (custName(c)?'<div class="cust">'+esc(custName(c))+'</div>':'')+
+    (custAddr(c)?'<div class="addr">'+esc(custAddr(c))+'</div>':'')+
+    '</a>';
+}
+function section(title,jobs){if(!jobs.length)return '';return '<div class="section-title">'+esc(title)+'</div>'+jobs.map(card).join('');}
+async function loadJobs(){
+  try{
+    const r=await fetch(API+'/api/jobs',{headers:{Authorization:'Bearer '+token}});
+    if(!r.ok)throw new Error('Failed to load jobs');
+    const jobs=await r.json();
+    const t=todayStr();
+    const byTime=(a,b)=>timeToMinutes(a.scheduledTime)-timeToMinutes(b.scheduledTime);
+    const today=jobs.filter(j=>j.scheduledDate===t).sort(byTime);
+    const upcoming=jobs.filter(j=>j.scheduledDate&&j.scheduledDate>t)
+      .sort((a,b)=>a.scheduledDate<b.scheduledDate?-1:a.scheduledDate>b.scheduledDate?1:byTime(a,b));
+    const other=jobs.filter(j=>!j.scheduledDate||j.scheduledDate<t).sort(byTime);
+    document.getElementById('subtitle').textContent=today.length?(today.length+' job'+(today.length===1?'':'s')+' today'):'No jobs scheduled today';
+    const html=section('Today',today)+section('Upcoming',upcoming)+section('Other',other);
+    document.getElementById('content').innerHTML=html||'<div class="empty">No jobs assigned to you yet.</div>';
+  }catch(e){document.getElementById('content').innerHTML='<div class="empty" style="color:#ef4444">Could not load your jobs.</div>';}
+}
+async function init(){
+  await loadBrand();
+  if(!token){location.href='index.html';return;}
+  const r=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});
+  if(!r.ok){location.href='index.html';return;}
+  const me=await r.json();
+  document.getElementById('nav-user-name').textContent=(me.firstName||'')+' '+(me.lastName||'');
+  if(!MBC.start(me))return;
+  loadJobs();
+}
+init();
+</script>
+</body>
+</html>
