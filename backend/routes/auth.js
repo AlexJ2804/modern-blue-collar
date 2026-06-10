@@ -70,6 +70,12 @@ function resolveActor(req) {
     return null;
 }
 
+// Returns true when `path` is `prefix` exactly or a sub-path of it, matching on
+// segment boundaries so '/api/authz-x' does NOT match the '/api/auth' exemption.
+function isUnder(path, prefix) {
+    return path === prefix || path.startsWith(prefix + '/');
+}
+
 function accessGate(req, res, next) {
     const actor = resolveActor(req);
 
@@ -87,7 +93,7 @@ function accessGate(req, res, next) {
     }
 
     if (actor && actor.status === 'pending'
-        && !PENDING_EXEMPT.some(p => fullPath.startsWith(p))) {
+        && !PENDING_EXEMPT.some(p => isUnder(fullPath, p))) {
           return res.status(403).json({ error: 'Account pending approval', status: 'pending' });
     }
 

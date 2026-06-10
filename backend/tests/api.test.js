@@ -657,6 +657,7 @@ async function gateHttpTests() {
   app.use('/api/', accessGate); // mounted the same way as server.js
   app.get('/api/auth/me', (_req, res) => res.json({ ok: true, route: 'me' }));
   app.get('/api/jobs',    (_req, res) => res.json({ ok: true, route: 'jobs' }));
+  app.get('/api/authz-x', (_req, res) => res.json({ ok: true, route: 'authz-x' })); // boundary probe
 
   const server = await new Promise(resolve => { const s = app.listen(0, () => resolve(s)); });
   const port = server.address().port;
@@ -677,6 +678,11 @@ async function gateHttpTests() {
     await test('Pending user reaches exempt /api/auth/me through the mount (200)', async () => {
       const r = await call('/api/auth/me', pendingToken);
       assertEqual(r.status, 200, 'auth/me must stay exempt for pending users (regression: req.path strip)');
+    });
+
+    await test('Exemption matches on segment boundary — /api/authz-x is NOT exempt (403)', async () => {
+      const r = await call('/api/authz-x', pendingToken);
+      assertEqual(r.status, 403, 'a route sharing a prefix must not inherit the /api/auth exemption');
     });
 
     await test('Pending user is blocked on /api/jobs through the mount (403)', async () => {
