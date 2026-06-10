@@ -99,6 +99,7 @@
         </select>
         <button class="btn-sm" onclick="saveNotes()">Save Notes</button>
         <button id="btn-create-invoice" class="btn-sm" onclick="createInvoice()">Create Invoice</button>
+        <button class="btn-outline" onclick="textCustomer()">Text Customer</button>
       </div>
     </div>
     <div class="grid-2">
@@ -152,7 +153,7 @@
 <script>
 const API='';let brand={};let token=localStorage.getItem('token');
 const jobId=new URLSearchParams(window.location.search).get('id');
-let jobVersion=1;let currentUser=null;let socket;
+let jobVersion=1;let currentUser=null;let socket;let currentJob=null;
 
 try { socket = io(); } catch(e) { console.warn('Socket.io not available'); }
 
@@ -205,6 +206,7 @@ async function loadJob(){
     const r=await fetch(API+'/api/jobs/'+jobId,{headers:{Authorization:'Bearer '+token}});
     if(!r.ok)throw new Error('not found');
     const job=await r.json();
+    currentJob=job;
     jobVersion=job.version||1;
     document.getElementById('loading-msg').style.display='none';
     document.getElementById('job-content').style.display='block';
@@ -276,6 +278,22 @@ async function saveNotes(){
 async function createInvoice(){
   if(!confirm('Create an invoice for this job?'))return;
   try{const r=await fetch(API+'/api/invoices',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({jobId:parseInt(jobId),amount:0})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');alert('Invoice #'+d.id+' created!');loadJob();}catch(e){alert(e.message);}
+}
+
+// Open the technician's own phone messaging app, pre-addressed to the customer
+// with an editable message. No SMS provider — the text is sent from the tech's
+// device/number. The "sms:NUMBER?&body=" form works on both iOS and Android.
+function textCustomer(){
+  const c=currentJob&&currentJob.customer;
+  const num=c&&c.phone?String(c.phone).replace(/[^0-9+]/g,''):'';
+  if(!num){alert('No customer phone number on file for this job.');return;}
+  const name=(c.firstName||'').trim();
+  const tech=(currentUser&&currentUser.firstName||'').trim();
+  const company=brand.companyName||'us';
+  const svc=currentJob.type||'service';
+  const when=currentJob.scheduledDate?(' on '+currentJob.scheduledDate+(currentJob.scheduledTime?' at '+currentJob.scheduledTime:'')):'';
+  const body=(name?'Hi '+name+', ':'Hi, ')+'this is '+(tech?tech+' with ':'')+company+' regarding your '+svc+' appointment'+when+'.';
+  window.location.href='sms:'+num+'?&body='+encodeURIComponent(body);
 }
 
 // Clean up presence on page leave
