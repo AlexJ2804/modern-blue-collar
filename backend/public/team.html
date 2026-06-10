@@ -105,11 +105,12 @@
   </div>
 </div>
 
+<script src="js/nav.js"></script>
 <script>
 const API='';let brand={};let token=localStorage.getItem('token');let allUsers=[];let currentTab='all';
 async function loadBrand(){try{const r=await fetch(API+'/api/brand');brand=await r.json();document.title=brand.companyName+' - Team';document.getElementById('nav-company').textContent=brand.companyName;document.getElementById('nav-trade').textContent=(brand.tradeType||'trade').toUpperCase();const tl=brand.technicianLabel||'Technician';document.getElementById('nav-team-label').textContent=tl+'s';document.getElementById('page-title').textContent=tl+' & Team';document.getElementById('tab-tech').textContent=tl+'s';document.getElementById('opt-tech').textContent=tl;if(brand.colors){const s=document.documentElement.style;if(brand.colors.primary)s.setProperty('--color-primary',brand.colors.primary);if(brand.colors.primaryDark)s.setProperty('--color-primary-dark',brand.colors.primaryDark);if(brand.colors.navBg)s.setProperty('--color-nav-bg',brand.colors.navBg);if(brand.colors.navText)s.setProperty('--color-nav-text',brand.colors.navText);if(brand.colors.accent)s.setProperty('--color-accent',brand.colors.accent);}}catch(e){console.warn(e);}}
 function logout(){localStorage.removeItem('token');location.href='index.html';}
-async function init(){await loadBrand();if(!token){location.href='index.html';return;}const r=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});if(!r.ok){location.href='index.html';return;}const me=await r.json();document.getElementById('nav-user-name').textContent=me.name||me.email;loadTeam();}
+async function init(){await loadBrand();if(!token){location.href='index.html';return;}const r=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});if(!r.ok){location.href='index.html';return;}const me=await r.json();document.getElementById('nav-user-name').textContent=me.name||me.email;if(!MBC.start(me))return;loadTeam();}
 async function loadTeam(){try{const r=await fetch(API+'/api/users',{headers:{Authorization:'Bearer '+token}});allUsers=await r.json();renderTeam();}catch(e){document.getElementById('team-grid').innerHTML='<div class="empty" style="color:#ef4444">Failed to load team.</div>';}}
 function showTab(tab){currentTab=tab;document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===tab));renderTeam();}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}

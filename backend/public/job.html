@@ -137,7 +137,7 @@
           <div class="info-row"><span class="info-label">Address</span><span class="info-value" id="c-address">-</span></div>
           <div style="margin-top:0.75rem;"><a id="c-link" href="#" class="btn-sm" style="text-decoration:none;">View Customer</a></div>
         </div>
-        <div class="card">
+        <div class="card" id="inv-card">
           <h3>Invoices &amp; Quotes</h3>
           <div id="inv-list" style="font-size:0.875rem;color:#94a3b8;">None yet.</div>
         </div>
@@ -148,6 +148,7 @@
   <div id="error-msg" style="text-align:center;padding:4rem;color:#ef4444;display:none;">Job not found.</div>
 </main>
 <script src="/socket.io/socket.io.js"></script>
+<script src="js/nav.js"></script>
 <script>
 const API='';let brand={};let token=localStorage.getItem('token');
 const jobId=new URLSearchParams(window.location.search).get('id');
@@ -165,12 +166,17 @@ async function init(){
   const mr=await fetch(API+'/api/auth/me',{headers:{Authorization:'Bearer '+token}});
   if(!mr.ok){location.href='index.html';return;}
   currentUser=await mr.json();
-  // Billing controls are admin-only (mirrors api-keys.html). Server still enforces this.
-  if(currentUser.role!=='admin'&&currentUser.role!=='super-admin'){
-    const b=document.getElementById('btn-create-invoice');
-    if(b)b.style.display='none';
-  }
   document.getElementById('nav-user-name').textContent=currentUser.firstName+' '+currentUser.lastName;
+  // Role-based nav + page guard (pending screen / bounce). job.html is tech-allowed
+  // for their own jobs, so technicians are not bounced — but money is hidden below.
+  if(!MBC.start(currentUser))return;
+  // Billing controls AND money visibility are admin-only (mirrors api-keys.html).
+  // The server still enforces this; the View Customer link points to an admin-only page.
+  if(currentUser.role!=='admin'&&currentUser.role!=='super-admin'){
+    ['btn-create-invoice','inv-card','c-link'].forEach(function(id){
+      const el=document.getElementById(id); if(el)el.style.display='none';
+    });
+  }
 
   // Join presence room
   if(socket&&currentUser){

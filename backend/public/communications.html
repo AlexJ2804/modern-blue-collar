@@ -130,6 +130,7 @@
   </div>
 </div>
 
+<script src="js/nav.js"></script>
 <script>
 const API='';let brand={};let token=localStorage.getItem('token');let allTimeline=[];
 const params=new URLSearchParams(window.location.search);
@@ -145,6 +146,7 @@ async function init(){
   if(!r.ok){location.href='index.html';return;}
   const me=await r.json();
   document.getElementById('nav-user-name').textContent=me.firstName+' '+me.lastName;
+  if(!MBC.start(me))return;
   await loadCustomers();
   if(presetCustomerId){
     document.getElementById('customer-filter').value=presetCustomerId;

@@ -127,6 +127,7 @@
   </div>
 </div>
 
+<script src="js/nav.js"></script>
 <script>
 const API='';let brand={};let token=localStorage.getItem('token');
 async function loadBrand(){try{const r=await fetch(API+'/api/brand');brand=await r.json();document.title=brand.companyName+' - API Keys';document.getElementById('nav-company').textContent=brand.companyName;document.getElementById('nav-trade').textContent=(brand.tradeType||'trade').toUpperCase();document.getElementById('nav-team-label').textContent=(brand.technicianLabel||'Technician')+'s';if(brand.colors){const s=document.documentElement.style;if(brand.colors.primary)s.setProperty('--color-primary',brand.colors.primary);if(brand.colors.primaryDark)s.setProperty('--color-primary-dark',brand.colors.primaryDark);if(brand.colors.navBg)s.setProperty('--color-nav-bg',brand.colors.navBg);if(brand.colors.navText)s.setProperty('--color-nav-text',brand.colors.navText);if(brand.colors.accent)s.setProperty('--color-accent',brand.colors.accent);}}catch(e){console.warn(e);}}
@@ -139,6 +140,7 @@ async function init(){
   if(!r.ok){location.href='index.html';return;}
   const me=await r.json();
   document.getElementById('nav-user-name').textContent=me.name||me.firstName+' '+me.lastName||me.email;
+  if(!MBC.start(me))return;
   if(me.role!=='super-admin'&&me.role!=='admin'){
     document.querySelector('main').innerHTML='<div class="empty" style="padding:4rem;">You need admin access to manage API keys.</div>';
     return;
