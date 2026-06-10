@@ -16,6 +16,26 @@ function makeToken(user) {
   return jwt.sign(user, JWT_SECRET, { expiresIn: '1h' });
 }
 
+// Middleware under test (role gating + the access gate that blocks pending users
+// and audits ghost writes).
+const { requireRole, accessGate } = require('../routes/auth');
+
+// Run an Express-style middleware against a fake req/res and capture the result.
+// Returns { status, body, nextCalled }. Pass `user` to populate req.user directly
+// (so we exercise guard logic without needing a signed token / JWT_SECRET).
+function runMiddleware(mw, { user, method = 'GET', path = '/api/jobs' } = {}) {
+  return new Promise((resolve) => {
+    const req = { user, method, path, headers: {}, ip: '127.0.0.1' };
+    let settled = false;
+    const res = {
+      statusCode: 200,
+      status(code) { this.statusCode = code; return this; },
+      json(body) { if (!settled) { settled = true; resolve({ status: this.statusCode, body, nextCalled: false }); } },
+    };
+    mw(req, res, () => { if (!settled) { settled = true; resolve({ status: 200, body: null, nextCalled: true }); } });
+  });
+}
+
 // Test data
 let adminUser, techUser, adminToken, techToken;
 let testCustomer, testJob, testQuote, testInvoice, testComm;
@@ -523,6 +543,81 @@ async function roleTests() {
   });
 }
 
+// ── Google Provisioning / Access Gate Tests ─────────────────────────────────
+async function googleProvisioningTests() {
+  console.log('\n--- Google Provisioning & Access Gate Tests ---');
+
+  // Stage 0 prerequisite: a technician cannot reach the user-management routes,
+  // so they cannot self-escalate via PATCH /api/users/:id.
+  await test('Technician is blocked (403) from user management (self-escalation guard)', async () => {
+    const r = await runMiddleware(requireRole('super-admin', 'admin'), {
+      user: { id: techUser.id, role: 'technician' }, method: 'PATCH', path: `/api/users/${techUser.id}`,
+    });
+    assertEqual(r.status, 403, 'Technician should be forbidden');
+    assert(!r.nextCalled, 'Guard should not call next() for a technician');
+  });
+
+  // Pending accounts authenticate but are blocked from data routes by accessGate.
+  await test('Pending user is blocked (403) from data routes', async () => {
+    const r = await runMiddleware(accessGate, {
+      user: { id: 999, role: 'technician', status: 'pending' }, method: 'GET', path: '/api/jobs',
+    });
+    assertEqual(r.status, 403, 'Pending user should be forbidden on data routes');
+    assert(r.body && r.body.status === 'pending', 'Response should flag pending status');
+  });
+
+  await test('Pending user may still reach /api/auth (e.g. /me)', async () => {
+    const r = await runMiddleware(accessGate, {
+      user: { id: 999, role: 'technician', status: 'pending' }, method: 'GET', path: '/api/auth/me',
+    });
+    assert(r.nextCalled, 'Pending user should pass the gate on auth routes');
+  });
+
+  await test('Approved (active) user passes the access gate', async () => {
+    const r = await runMiddleware(accessGate, {
+      user: { id: 1, role: 'technician', status: 'active' }, method: 'GET', path: '/api/jobs',
+    });
+    assert(r.nextCalled, 'Active user should pass the gate');
+  });
+
+  // Schema: new accounts default to active; auto-provisioned ones are pending.
+  await test('User status defaults to active', async () => {
+    const u = await prisma.user.findUnique({ where: { id: adminUser.id } });
+    assertEqual(u.status, 'active');
+    assertEqual(u.isGhost, false);
+  });
+
+  await test('Auto-provisioned technician can be created as pending', async () => {
+    const u = await prisma.user.create({
+      data: {
+        email: 'pending@test.com', password: 'x', firstName: 'Pend', lastName: 'Ing',
+        role: 'technician', status: 'pending',
+      },
+    });
+    assertEqual(u.status, 'pending');
+    assertEqual(u.role, 'technician');
+    // Approving flips status to active (mirrors the Team-page approve action).
+    const approved = await prisma.user.update({ where: { id: u.id }, data: { status: 'active' } });
+    assertEqual(approved.status, 'active');
+    await prisma.user.delete({ where: { id: u.id } });
+  });
+
+  // Ghost-admin sign-in writes an audit record.
+  await test('Audit log records a ghost sign-in', async () => {
+    const ghost = await prisma.user.create({
+      data: {
+        email: 'ghost@test.com', password: 'x', firstName: 'Ghost', lastName: 'Admin',
+        role: 'super-admin', isGhost: true, status: 'active',
+      },
+    });
+    await prisma.auditLog.create({ data: { userId: ghost.id, action: 'ghost-login', detail: 'test' } });
+    const logs = await prisma.auditLog.findMany({ where: { userId: ghost.id } });
+    assert(logs.length >= 1, 'Should have written an audit record');
+    await prisma.auditLog.deleteMany({ where: { userId: ghost.id } });
+    await prisma.user.delete({ where: { id: ghost.id } });
+  });
+}
+
 // ── Delete / Cleanup Tests ──────────────────────────────────────────────────
 async function deleteTests() {
   console.log('\n--- Delete Tests ---');
@@ -575,6 +670,7 @@ async function runAll() {
   await optimisticLockingTests();
   await pricebookTests();
   await roleTests();
+  await googleProvisioningTests();
   await deleteTests();
 
   console.log(`\n=== Results: ${results.passed} passed, ${results.failed} failed (${results.passed + results.failed} total) ===`);

@@ -20,6 +20,17 @@ module.exports = {
       // Supported values: 'electrical' | 'plumbing' | 'hvac' | 'plumbing-hvac' | 'contracting'
       tradeType: process.env.BRAND_TRADE_TYPE || 'electrical',
 
+      // ── Google Workspace domain restriction ─────────────────────────────────────
+      // Comma-separated Workspace domains permitted to auto-provision an account on
+      // first Google sign-in. Empty = no auto-provisioning at all (fail closed).
+      // The first entry is also used as the Google `hd` picker hint.
+      get allowedDomains() {
+        return (process.env.BRAND_ALLOWED_DOMAINS || '')
+          .split(',')
+          .map(d => d.trim().toLowerCase())
+          .filter(Boolean);
+      },
+
       // ── UI theme colours (CSS custom properties) ────────────────────────────────
       // Override via BRAND_COLOR_PRIMARY env var or edit defaults below.
       colors: {

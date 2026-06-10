@@ -109,6 +109,13 @@ app.get('/api/presence/:jobId', (req, res) => {
   res.json({ jobId, viewers: presence[jobId] || {} });
 });
 
+// ── Access gate ───────────────────────────────────────────────────────────────
+// Audits ghost-admin (platform support) writes and blocks pending (not-yet-
+// approved) accounts from data routes. Mounted after API-key auth so req.user is
+// available for key callers; falls back to decoding the JWT for token callers.
+const { accessGate } = require('./routes/auth');
+app.use('/api/', accessGate);
+
 // ── API routes ──────────────────────────────────────────────────────────────
 app.use('/api/customers',       require('./routes/customers'));
 app.use('/api/jobs',            require('./routes/jobs'));

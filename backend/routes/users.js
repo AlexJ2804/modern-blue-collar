@@ -18,7 +18,7 @@ const prisma = new PrismaClient();
 router.get('/', requireAuth, requireRole('super-admin', 'admin'), async (_req, res, next) => {
     try {
           const users = await prisma.user.findMany({
-                  select: { id: true, email: true, role: true, firstName: true, lastName: true, phone: true, active: true, createdAt: true },
+                  select: { id: true, email: true, role: true, firstName: true, lastName: true, phone: true, active: true, status: true, isGhost: true, createdAt: true },
                   orderBy: { lastName: 'asc' },
           });
           res.json(users);
@@ -66,16 +66,44 @@ router.post('/', requireAuth, requireRole('super-admin', 'admin'), async (req, r
     } catch (err) { next(err); }
 });
 
-// PATCH /api/users/:id
-router.patch('/:id', requireAuth, async (req, res, next) => {
+// PATCH /api/users/:id/approve — admin+ approves a pending auto-provisioned account
+router.patch('/:id/approve', requireAuth, requireRole('super-admin', 'admin'), async (req, res, next) => {
     try {
-          const data = { ...req.body };
-          // Never update password via this route — use a dedicated change-password endpoint
-      delete data.password;
+          const user = await prisma.user.update({
+                  where:  { id: Number(req.params.id) },
+                  data:   { status: 'active' },
+                  select: { id: true, email: true, role: true, firstName: true, lastName: true, phone: true, active: true, status: true },
+          });
+          res.json(user);
+    } catch (err) { next(err); }
+});
+
+// Fields a user record may be updated with via PATCH. Anything else in the body
+// (password, isGhost, createdAt, id, …) is ignored. `role` is handled separately
+// because changing it is restricted to super-admins.
+const UPDATABLE_FIELDS = ['firstName', 'lastName', 'phone', 'email', 'active', 'status'];
+
+// PATCH /api/users/:id — admin+ only. Role changes are super-admin-only.
+router.patch('/:id', requireAuth, requireRole('super-admin', 'admin'), async (req, res, next) => {
+    try {
+          const data = {};
+          for (const f of UPDATABLE_FIELDS) {
+                  if (f in req.body) data[f] = req.body[f];
+          }
+          if (data.email) data.email = String(data.email).toLowerCase().trim();
+
+          // Role escalation guard: only super-admins may change a user's role.
+          if ('role' in req.body) {
+                  if (req.user.role !== 'super-admin') {
+                          return res.status(403).json({ error: 'Only super-admins can change roles' });
+                  }
+                  data.role = req.body.role;
+          }
+
           const user = await prisma.user.update({
                   where:  { id: Number(req.params.id) },
                   data,
-                  select: { id: true, email: true, role: true, firstName: true, lastName: true, phone: true, active: true },
+                  select: { id: true, email: true, role: true, firstName: true, lastName: true, phone: true, active: true, status: true },
           });
           res.json(user);
     } catch (err) { next(err); }
