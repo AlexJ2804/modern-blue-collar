@@ -14,14 +14,14 @@ const prisma           = new PrismaClient();
 // role list, so clients can map other roles (e.g. `office`) to billing writes.
 const BILLING_ROLES = ['admin', 'super-admin']; // per-deployment knob until permissions are configurable
 
-router.get('/',     requireAuth, async (req, res, next) => {
+router.get('/',     requireAuth, requireRole(...BILLING_ROLES), async (req, res, next) => {
   try {
     const quotes = await prisma.quote.findMany({ include: { job: { include: { customer: true } } }, orderBy: { createdAt: 'desc' } });
     res.json(quotes);
   } catch (e) { next(e); }
 });
 
-router.get('/:id',  requireAuth, async (req, res, next) => {
+router.get('/:id',  requireAuth, requireRole(...BILLING_ROLES), async (req, res, next) => {
   try {
     const q = await prisma.quote.findUnique({ where: { id: Number(req.params.id) }, include: { job: { include: { customer: true } } } });
     if (!q) return res.status(404).json({ error: 'Quote not found' });

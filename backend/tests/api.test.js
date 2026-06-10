@@ -700,6 +700,103 @@ async function gateHttpTests() {
   }
 }
 
+// ── HTTP helpers for real-router integration tests ──────────────────────────
+function listen(app) { return new Promise(resolve => { const s = app.listen(0, () => resolve(s)); }); }
+function httpCall(server, method, path, token, body) {
+  const http = require('http');
+  return new Promise((resolve, reject) => {
+    const port = server.address().port;
+    const payload = body ? JSON.stringify(body) : null;
+    const headers = {};
+    if (token) headers.Authorization = 'Bearer ' + token;
+    if (payload) { headers['Content-Type'] = 'application/json'; headers['Content-Length'] = Buffer.byteLength(payload); }
+    const req = http.request({ port, method, path, headers }, (res) => {
+      let b = ''; res.on('data', c => (b += c));
+      res.on('end', () => resolve({ status: res.statusCode, body: b ? JSON.parse(b) : null }));
+    });
+    req.on('error', reject);
+    if (payload) req.write(payload);
+    req.end();
+  });
+}
+
+// ── Stage 1: read/write gate tests (real routers; 403 fires before any DB) ───
+async function stage1GateTests() {
+  console.log('\n--- Stage 1: Read/Write Gate Tests ---');
+  const express = require('express');
+  const app = express(); app.use(express.json());
+  app.use('/api/pricebook', require('../routes/pricebook'));
+  app.use('/api/customers', require('../routes/customers'));
+  app.use('/api/invoices',  require('../routes/invoices'));
+  app.use('/api/quotes',    require('../routes/quotes'));
+  app.use('/api/users',     require('../routes/users'));
+  const server = await listen(app);
+  const tToken = makeToken({ id: techUser.id, role: 'technician' });
+
+  try {
+    for (const path of ['/api/pricebook', '/api/customers', '/api/invoices', '/api/quotes']) {
+      await test(`Technician GET ${path} → 403`, async () => {
+        const r = await httpCall(server, 'GET', path, tToken);
+        assertEqual(r.status, 403, `${path} reads must be admin-only`);
+      });
+    }
+    await test('Technician PATCH /api/users/1 role change → 403 (no self-escalation)', async () => {
+      const r = await httpCall(server, 'PATCH', '/api/users/1', tToken, { role: 'admin' });
+      assertEqual(r.status, 403);
+    });
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+  }
+}
+
+// ── Stage 1: technician job scoping (real jobs router, DB-backed) ────────────
+async function jobsScopingTests() {
+  console.log('\n--- Stage 1: Technician Job Scoping Tests ---');
+  const express = require('express');
+  const app = express(); app.use(express.json());
+  app.use('/api/jobs', require('../routes/jobs'));
+  const server = await listen(app);
+
+  const techB = await prisma.user.create({
+    data: { email: 'techb@test.com', password: 'x', firstName: 'Tech', lastName: 'B', role: 'technician' },
+  });
+  const jobA = await prisma.job.create({
+    data: { title: 'Tech A job', customerId: testCustomer.id, technicianId: techUser.id, type: 'Inspection', tradeType: 'electrical', status: 'pending', priority: 'normal' },
+  });
+  const jobB = await prisma.job.create({
+    data: { title: 'Tech B job', customerId: testCustomer.id, technicianId: techB.id, type: 'Inspection', tradeType: 'electrical', status: 'pending', priority: 'normal' },
+  });
+  const tokenA = makeToken({ id: techUser.id, role: 'technician' });
+
+  try {
+    await test('Tech GET /api/jobs returns only own jobs, even with ?technicianId=other', async () => {
+      const r = await httpCall(server, 'GET', `/api/jobs?technicianId=${techB.id}`, tokenA);
+      assertEqual(r.status, 200);
+      assert(Array.isArray(r.body), 'should be a list');
+      assert(r.body.every(j => j.technicianId === techUser.id), 'only own jobs returned');
+      assert(r.body.some(j => j.id === jobA.id), 'own job present');
+      assert(!r.body.some(j => j.id === jobB.id), 'other tech job absent');
+    });
+    await test('Tech GET /api/jobs/:id for another tech job → 404', async () => {
+      const r = await httpCall(server, 'GET', `/api/jobs/${jobB.id}`, tokenA);
+      assertEqual(r.status, 404);
+    });
+    await test('Tech GET /api/jobs/:id for own job → 200 with customer info', async () => {
+      const r = await httpCall(server, 'GET', `/api/jobs/${jobA.id}`, tokenA);
+      assertEqual(r.status, 200);
+      assert(r.body.customer && r.body.customer.phone, 'own job includes customer info');
+    });
+    await test('Tech PATCH another tech job → 404', async () => {
+      const r = await httpCall(server, 'PATCH', `/api/jobs/${jobB.id}`, tokenA, { status: 'completed' });
+      assertEqual(r.status, 404);
+    });
+  } finally {
+    await prisma.job.deleteMany({ where: { id: { in: [jobA.id, jobB.id] } } });
+    await prisma.user.delete({ where: { id: techB.id } });
+    await new Promise(resolve => server.close(resolve));
+  }
+}
+
 // ── Delete / Cleanup Tests ──────────────────────────────────────────────────
 async function deleteTests() {
   console.log('\n--- Delete Tests ---');
@@ -754,6 +851,8 @@ async function runAll() {
   await roleTests();
   await googleProvisioningTests();
   await gateHttpTests();
+  await stage1GateTests();
+  await jobsScopingTests();
   await deleteTests();
 
   console.log(`\n=== Results: ${results.passed} passed, ${results.failed} failed (${results.passed + results.failed} total) ===`);

@@ -21,6 +21,16 @@ const brand        = require('../../brand.config');
 
 const prisma = new PrismaClient();
 
+// TODO: per-deployment page matrix (dispatcher/office get bespoke scoping).
+// Technicians are scoped to their own jobs; everyone else sees all jobs.
+// For a technician, returns true only if the job is assigned to them. Used to
+// 404 (not 403) cross-technician access so we don't confirm a job exists.
+async function techMayAccessJob(req, jobId) {
+    if (req.user.role !== 'technician') return true;
+    const job = await prisma.job.findUnique({ where: { id: jobId }, select: { technicianId: true } });
+    return !!job && job.technicianId === req.user.id;
+}
+
 // ── GET /api/jobs/types — trade-specific job types ─────────────────────────────
 router.get('/types', requireAuth, (_req, res) => {
     res.json({ tradeType: brand.tradeType, jobTypes: brand.jobTypes });
@@ -32,7 +42,13 @@ router.get('/', requireAuth, async (req, res, next) => {
           const { status, technicianId, date } = req.query;
           const where = {};
           if (status)      where.status      = status;
-          if (technicianId) where.technicianId = Number(technicianId);
+          // Technicians only ever see their own jobs — ignore any client-supplied
+          // technicianId. Admins may filter by technicianId as before.
+          if (req.user.role === 'technician') {
+                  where.technicianId = req.user.id;
+          } else if (technicianId) {
+                  where.technicianId = Number(technicianId);
+          }
           if (date)        where.scheduledDate = date;
 
       const jobs = await prisma.job.findMany({
@@ -63,6 +79,11 @@ router.get('/:id', requireAuth, async (req, res, next) => {
                   },
           });
           if (!job) return res.status(404).json({ error: 'Job not found' });
+          // A technician may only view their own jobs; 404 (not 403) so we don't
+          // confirm another tech's job exists.
+          if (req.user.role === 'technician' && job.technicianId !== req.user.id) {
+                  return res.status(404).json({ error: 'Job not found' });
+          }
           res.json(job);
     } catch (err) { next(err); }
 });
@@ -103,6 +124,8 @@ router.post('/', requireAuth, async (req, res, next) => {
 router.patch('/:id', requireAuth, async (req, res, next) => {
     try {
           const id   = Number(req.params.id);
+          // Technicians may only update their own jobs (status/notes); 404 otherwise.
+          if (!(await techMayAccessJob(req, id))) return res.status(404).json({ error: 'Job not found' });
           const data = { ...req.body };
 
       // Coerce numeric FK fields
@@ -129,6 +152,7 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
 router.put('/:id', requireAuth, async (req, res, next) => {
     try {
           const id   = Number(req.params.id);
+          if (!(await techMayAccessJob(req, id))) return res.status(404).json({ error: 'Job not found' });
           const data = { ...req.body };
 
       if (data.customerId)   data.customerId   = Number(data.customerId);
@@ -152,7 +176,12 @@ router.put('/:id', requireAuth, async (req, res, next) => {
 // ── DELETE /api/jobs/:id ───────────────────────────────────────────────────────
 router.delete('/:id', requireAuth, async (req, res, next) => {
     try {
-          await prisma.job.delete({ where: { id: Number(req.params.id) } });
+          const id = Number(req.params.id);
+          // Ownership-scope deletes too: a technician cannot delete another tech's
+          // job (would otherwise be a delete-any-job hole). See report — brief
+          // scoped this to PATCH/PUT; extended to DELETE for consistency.
+          if (!(await techMayAccessJob(req, id))) return res.status(404).json({ error: 'Job not found' });
+          await prisma.job.delete({ where: { id } });
           res.json({ success: true });
     } catch (err) { next(err); }
 });

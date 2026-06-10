@@ -6,13 +6,16 @@
    const express           = require('express');
    const router            = express.Router();
    const { PrismaClient }  = require('@prisma/client');
-   const { requireAuth }   = require('./auth');
+   const { requireAuth, requireRole }   = require('./auth');
    const brand             = require('../../brand.config');
 
    const prisma = new PrismaClient();
 
+   // Pricebook exposes margins (cost vs price) — admins only, reads and writes.
+   const ADMIN_ROLES = ['admin', 'super-admin'];
+
    // GET /api/pricebook — filtered to current trade industry by default
-   router.get('/', requireAuth, async (req, res, next) => {
+   router.get('/', requireAuth, requireRole(...ADMIN_ROLES), async (req, res, next) => {
      try {
          const { category, search, industry, active } = req.query;
              const where = {
@@ -31,7 +34,7 @@
                                                                });
 
                                                                // GET /api/pricebook/:id
-                                                               router.get('/:id', requireAuth, async (req, res, next) => {
+                                                               router.get('/:id', requireAuth, requireRole(...ADMIN_ROLES), async (req, res, next) => {
                                                                  try {
                                                                      const item = await prisma.priceBookItem.findUnique({ where: { id: Number(req.params.id) } });
                                                                          if (!item) return res.status(404).json({ error: 'PriceBook item not found' });
@@ -40,7 +43,7 @@
                                                                                });
 
                                                                                // POST /api/pricebook
-                                                                               router.post('/', requireAuth, async (req, res, next) => {
+                                                                               router.post('/', requireAuth, requireRole(...ADMIN_ROLES), async (req, res, next) => {
                                                                                  try {
                                                                                      const { category, name, price, cost, taxable, unit, taskCode, subcategory, description } = req.body;
                                                                                          if (!category || !name) return res.status(400).json({ error: 'category and name are required' });
@@ -57,7 +60,7 @@
                                                                                                                                                    });
                                                                                                                                                    
                                                                                                                                                    // PATCH /api/pricebook/:id
-                                                                                                                                                   router.patch('/:id', requireAuth, async (req, res, next) => {
+                                                                                                                                                   router.patch('/:id', requireAuth, requireRole(...ADMIN_ROLES), async (req, res, next) => {
                                                                                                                                                      try {
                                                                                                                                                          const item = await prisma.priceBookItem.update({
                                                                                                                                                                where: { id: Number(req.params.id) },
@@ -68,7 +71,7 @@
                                                                                                                                                                                });
                                                                                                                                                                                
                                                                                                                                                                                // DELETE /api/pricebook/:id
-                                                                                                                                                                               router.delete('/:id', requireAuth, async (req, res, next) => {
+                                                                                                                                                                               router.delete('/:id', requireAuth, requireRole(...ADMIN_ROLES), async (req, res, next) => {
                                                                                                                                                                                  try {
                                                                                                                                                                                      await prisma.priceBookItem.update({ where: { id: Number(req.params.id) }, data: { active: false } });
                                                                                                                                                                                          res.json({ success: true });

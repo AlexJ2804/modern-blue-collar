@@ -7,14 +7,18 @@
 const express           = require('express');
 const router            = express.Router();
 const { PrismaClient }  = require('@prisma/client');
-const { requireAuth }   = require('./auth');
+const { requireAuth, requireRole }   = require('./auth');
 const { optimisticUpdate } = require('../helpers/optimisticUpdate');
 const brand             = require('../../brand.config');
 
 const prisma = new PrismaClient();
 
+// Customers are admin-only. Technicians get the customer info for their own jobs
+// via the job payload (jobs GET /:id includes the customer), not these routes.
+const ADMIN_ROLES = ['admin', 'super-admin'];
+
 // GET /api/customers
-router.get('/', requireAuth, async (req, res, next) => {
+router.get('/', requireAuth, requireRole(...ADMIN_ROLES), async (req, res, next) => {
   try {
     const { search, type } = req.query;
     const where = {};
@@ -37,7 +41,7 @@ router.get('/', requireAuth, async (req, res, next) => {
 });
 
 // GET /api/customers/:id
-router.get('/:id', requireAuth, async (req, res, next) => {
+router.get('/:id', requireAuth, requireRole(...ADMIN_ROLES), async (req, res, next) => {
   try {
     const customer = await prisma.customer.findUnique({
       where: { id: Number(req.params.id) },
@@ -52,7 +56,7 @@ router.get('/:id', requireAuth, async (req, res, next) => {
 });
 
 // POST /api/customers
-router.post('/', requireAuth, async (req, res, next) => {
+router.post('/', requireAuth, requireRole(...ADMIN_ROLES), async (req, res, next) => {
   try {
     const { firstName, lastName, email, phone, address, city, state, zip, type, notes } = req.body;
     if (!firstName || !lastName || !phone)
@@ -70,7 +74,7 @@ router.post('/', requireAuth, async (req, res, next) => {
 });
 
 // PATCH /api/customers/:id — with optimistic locking
-router.patch('/:id', requireAuth, async (req, res, next) => {
+router.patch('/:id', requireAuth, requireRole(...ADMIN_ROLES), async (req, res, next) => {
   try {
     const customer = await optimisticUpdate('customer', Number(req.params.id), req.body);
     res.json(customer);
@@ -81,7 +85,7 @@ router.patch('/:id', requireAuth, async (req, res, next) => {
 });
 
 // PUT /api/customers/:id — alias for PATCH with optimistic locking
-router.put('/:id', requireAuth, async (req, res, next) => {
+router.put('/:id', requireAuth, requireRole(...ADMIN_ROLES), async (req, res, next) => {
   try {
     const customer = await optimisticUpdate('customer', Number(req.params.id), req.body);
     res.json(customer);
@@ -92,7 +96,7 @@ router.put('/:id', requireAuth, async (req, res, next) => {
 });
 
 // DELETE /api/customers/:id
-router.delete('/:id', requireAuth, async (req, res, next) => {
+router.delete('/:id', requireAuth, requireRole(...ADMIN_ROLES), async (req, res, next) => {
   try {
     await prisma.customer.delete({ where: { id: Number(req.params.id) } });
     res.json({ success: true });
