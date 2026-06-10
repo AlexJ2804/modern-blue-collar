@@ -73,16 +73,21 @@ function resolveActor(req) {
 function accessGate(req, res, next) {
     const actor = resolveActor(req);
 
+    // Use originalUrl, not req.path: this middleware is mounted at '/api/', so
+    // Express strips that prefix from req.path (e.g. '/auth/me'). originalUrl
+    // keeps the full path the PENDING_EXEMPT entries are written against.
+    const fullPath = req.originalUrl.split('?')[0];
+
     if (actor && actor.isGhost && WRITE_METHODS.has(req.method)) {
           writeAudit({
                   userId: actor.id,
-                  action: `ghost-write ${req.method} ${req.path}`,
+                  action: `ghost-write ${req.method} ${fullPath}`,
                   ip:     req.ip,
           });
     }
 
     if (actor && actor.status === 'pending'
-        && !PENDING_EXEMPT.some(p => req.path.startsWith(p))) {
+        && !PENDING_EXEMPT.some(p => fullPath.startsWith(p))) {
           return res.status(403).json({ error: 'Account pending approval', status: 'pending' });
     }
 

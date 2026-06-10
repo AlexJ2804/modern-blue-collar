@@ -4,12 +4,16 @@
  *
  * Usage: npm test
  */
+// Pin a JWT secret BEFORE requiring routes/auth so the access gate decodes the
+// same tokens this suite signs (auth.js captures process.env.JWT_SECRET at load).
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key';
+
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Helper to generate tokens
 function makeToken(user) {
@@ -25,7 +29,9 @@ const { requireRole, accessGate } = require('../routes/auth');
 // (so we exercise guard logic without needing a signed token / JWT_SECRET).
 function runMiddleware(mw, { user, method = 'GET', path = '/api/jobs' } = {}) {
   return new Promise((resolve) => {
-    const req = { user, method, path, headers: {}, ip: '127.0.0.1' };
+    // originalUrl mirrors path so middleware that reads either works when called
+    // directly (no Express mount to strip the prefix here).
+    const req = { user, method, path, originalUrl: path, headers: {}, ip: '127.0.0.1' };
     let settled = false;
     const res = {
       statusCode: 200,
@@ -618,6 +624,56 @@ async function googleProvisioningTests() {
   });
 }
 
+// ── Access Gate through the real Express mount (supertest-style) ─────────────
+// Drives requests through `app.use('/api/', accessGate)` exactly as server.js
+// mounts it, so the test sees Express's mount-prefix stripping (req.path becomes
+// '/auth/me'). Calling accessGate directly would NOT catch the exempt-path bug.
+async function gateHttpTests() {
+  console.log('\n--- Access Gate (real Express mount) Tests ---');
+  const express = require('express');
+  const http = require('http');
+
+  const app = express();
+  app.use('/api/', accessGate); // mounted the same way as server.js
+  app.get('/api/auth/me', (_req, res) => res.json({ ok: true, route: 'me' }));
+  app.get('/api/jobs',    (_req, res) => res.json({ ok: true, route: 'jobs' }));
+
+  const server = await new Promise(resolve => { const s = app.listen(0, () => resolve(s)); });
+  const port = server.address().port;
+
+  const call = (path, token) => new Promise((resolve, reject) => {
+    const headers = token ? { Authorization: 'Bearer ' + token } : {};
+    http.get({ port, path, headers }, (res) => {
+      let body = '';
+      res.on('data', c => (body += c));
+      res.on('end', () => resolve({ status: res.statusCode, body: body ? JSON.parse(body) : null }));
+    }).on('error', reject);
+  });
+
+  const pendingToken = makeToken({ id: 1, role: 'technician', status: 'pending' });
+  const activeToken  = makeToken({ id: 2, role: 'technician', status: 'active' });
+
+  try {
+    await test('Pending user reaches exempt /api/auth/me through the mount (200)', async () => {
+      const r = await call('/api/auth/me', pendingToken);
+      assertEqual(r.status, 200, 'auth/me must stay exempt for pending users (regression: req.path strip)');
+    });
+
+    await test('Pending user is blocked on /api/jobs through the mount (403)', async () => {
+      const r = await call('/api/jobs', pendingToken);
+      assertEqual(r.status, 403);
+      assert(r.body && r.body.status === 'pending', 'should flag pending status');
+    });
+
+    await test('Active user passes /api/jobs through the mount (200)', async () => {
+      const r = await call('/api/jobs', activeToken);
+      assertEqual(r.status, 200);
+    });
+  } finally {
+    await new Promise(resolve => server.close(resolve));
+  }
+}
+
 // ── Delete / Cleanup Tests ──────────────────────────────────────────────────
 async function deleteTests() {
   console.log('\n--- Delete Tests ---');
@@ -671,6 +727,7 @@ async function runAll() {
   await pricebookTests();
   await roleTests();
   await googleProvisioningTests();
+  await gateHttpTests();
   await deleteTests();
 
   console.log(`\n=== Results: ${results.passed} passed, ${results.failed} failed (${results.passed + results.failed} total) ===`);
