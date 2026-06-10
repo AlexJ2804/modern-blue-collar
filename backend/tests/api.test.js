@@ -12,6 +12,14 @@ const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+// Middleware under test (role gating + the access gate that blocks pending users
+// and audits ghost writes).
+const { requireRole, accessGate } = require('../routes/auth');
+
+// Billing writes (invoices/quotes) are gated to these roles. Keep in sync with
+// BILLING_ROLES in routes/invoices.js and routes/quotes.js.
+const BILLING_ROLES = ['admin', 'super-admin'];
+
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -20,14 +28,14 @@ function makeToken(user) {
   return jwt.sign(user, JWT_SECRET, { expiresIn: '1h' });
 }
 
-// Middleware under test (role gating + the access gate that blocks pending users
-// and audits ghost writes).
-const { requireRole, accessGate } = require('../routes/auth');
-
 // Run an Express-style middleware against a fake req/res and capture the result.
-// Returns { status, body, nextCalled }. Pass `user` to populate req.user directly
-// (so we exercise guard logic without needing a signed token / JWT_SECRET).
-function runMiddleware(mw, { user, method = 'GET', path = '/api/jobs' } = {}) {
+// Returns { status, body, nextCalled }. The second arg may be either the user
+// object directly — runMiddleware(mw, userObj) — or options:
+// runMiddleware(mw, { user, method, path }).
+function runMiddleware(mw, arg = {}) {
+  const opts = (arg && (arg.user !== undefined || arg.method !== undefined || arg.path !== undefined))
+    ? arg : { user: arg };
+  const { user, method = 'GET', path = '/api/jobs' } = opts;
   return new Promise((resolve) => {
     // originalUrl mirrors path so middleware that reads either works when called
     // directly (no Express mount to strip the prefix here).
@@ -539,6 +547,18 @@ async function roleTests() {
   await test('User active flag defaults to true', async () => {
     assert(adminUser.active === true);
     assert(techUser.active === true);
+  });
+
+  // ── Billing role guard (invoices/quotes write gating) ──────────────────────
+  await test('Technician is blocked (403) from billing writes (POST /api/invoices)', async () => {
+    const result = await runMiddleware(requireRole(...BILLING_ROLES), jwt.verify(techToken, JWT_SECRET));
+    assertEqual(result.status, 403, 'Technician should be forbidden from billing writes');
+    assert(!result.nextCalled, 'Guard should not call next() for a technician');
+  });
+
+  await test('Super-admin is allowed through billing write guard', async () => {
+    const result = await runMiddleware(requireRole(...BILLING_ROLES), jwt.verify(adminToken, JWT_SECRET));
+    assert(result.nextCalled, 'Super-admin should pass the billing write guard');
   });
 
   await test('Can deactivate user', async () => {

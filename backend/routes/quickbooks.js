@@ -56,7 +56,7 @@ router.get('/callback', async (req, res, next) => {
 });
 
 // POST /api/quickbooks/sync-invoice/:id — stub; implement full QBO API call as needed
-router.post('/sync-invoice/:id', requireAuth, async (_req, res) => {
+router.post('/sync-invoice/:id', requireAuth, requireRole('super-admin', 'admin'), async (_req, res) => {
   if (!qboTokens) return res.status(400).json({ error: 'Not connected to QuickBooks. Visit /api/quickbooks/connect first.' });
   // TODO: implement full invoice push to QBO using qboTokens
   res.json({ success: true, message: 'Invoice sync to QuickBooks — implement full QBO API call here.' });
