@@ -100,6 +100,7 @@
         <button class="btn-sm" onclick="saveNotes()">Save Notes</button>
         <button id="btn-create-invoice" class="btn-sm" onclick="createInvoice()">Create Invoice</button>
         <button class="btn-outline" onclick="textCustomer()">Text Customer</button>
+        <button class="btn-outline" onclick="onMyWay()">On My Way</button>
       </div>
     </div>
     <div class="grid-2">
@@ -283,17 +284,32 @@ async function createInvoice(){
 // Open the technician's own phone messaging app, pre-addressed to the customer
 // with an editable message. No SMS provider — the text is sent from the tech's
 // device/number. The "sms:NUMBER?&body=" form works on both iOS and Android.
-function textCustomer(){
+function openSms(bodyText){
   const c=currentJob&&currentJob.customer;
   const num=c&&c.phone?String(c.phone).replace(/[^0-9+]/g,''):'';
   if(!num){alert('No customer phone number on file for this job.');return;}
+  window.location.href='sms:'+num+'?&body='+encodeURIComponent(bodyText);
+}
+
+function textCustomer(){
+  const c=currentJob&&currentJob.customer||{};
   const name=(c.firstName||'').trim();
   const tech=(currentUser&&currentUser.firstName||'').trim();
   const company=brand.companyName||'us';
-  const svc=currentJob.type||'service';
-  const when=currentJob.scheduledDate?(' on '+currentJob.scheduledDate+(currentJob.scheduledTime?' at '+currentJob.scheduledTime:'')):'';
+  const svc=currentJob&&currentJob.type||'service';
+  const when=currentJob&&currentJob.scheduledDate?(' on '+currentJob.scheduledDate+(currentJob.scheduledTime?' at '+currentJob.scheduledTime:'')):'';
   const body=(name?'Hi '+name+', ':'Hi, ')+'this is '+(tech?tech+' with ':'')+company+' regarding your '+svc+' appointment'+when+'.';
-  window.location.href='sms:'+num+'?&body='+encodeURIComponent(body);
+  openSms(body);
+}
+
+function onMyWay(){
+  const c=currentJob&&currentJob.customer||{};
+  const name=(c.firstName||'').trim();
+  const tech=(currentUser&&currentUser.firstName||'').trim();
+  const company=brand.companyName||'us';
+  const svc=currentJob&&currentJob.type||'service';
+  const body=(name?'Hi '+name+', ':'Hi, ')+'this is '+(tech?tech+' with ':'')+company+" — I'm on my way to your "+svc+' appointment now. See you soon.';
+  openSms(body);
 }
 
 // Clean up presence on page leave
