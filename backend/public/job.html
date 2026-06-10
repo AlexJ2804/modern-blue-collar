@@ -99,7 +99,6 @@
         </select>
         <button class="btn-sm" onclick="saveNotes()">Save Notes</button>
         <button id="btn-create-invoice" class="btn-sm" onclick="createInvoice()">Create Invoice</button>
-        <button class="btn-outline" onclick="sendSMS()">Send SMS</button>
       </div>
     </div>
     <div class="grid-2">
@@ -277,10 +276,6 @@ async function saveNotes(){
 async function createInvoice(){
   if(!confirm('Create an invoice for this job?'))return;
   try{const r=await fetch(API+'/api/invoices',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({jobId:parseInt(jobId),amount:0})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');alert('Invoice #'+d.id+' created!');loadJob();}catch(e){alert(e.message);}
-}
-
-async function sendSMS(){
-  try{const r=await fetch(API+'/api/sms/job-confirm/'+jobId,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');alert('SMS sent!');}catch(e){alert('SMS failed: '+e.message);}
 }
 
 // Clean up presence on page leave

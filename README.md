@@ -15,7 +15,6 @@ Modern Blue Collar is a production-ready, self-hosted web platform for small fie
 - Trade-specific pricebook
 - Team management with role-based access
 - QuickBooks Online sync
-- Twilio SMS notifications
 - Google OAuth team invites
 - Nightly database backups
 - CSV data exports
@@ -79,7 +78,6 @@ That's it. No other files need to change.
 - **Database:** SQLite via Prisma ORM (PostgreSQL-ready)
 - **Frontend:** Vanilla HTML/JS/CSS (no framework dependency)
 - **Auth:** JWT + Google OAuth (Passport.js)
-- **SMS:** Twilio
 - **Accounting:** QuickBooks Online API
 - **Scheduler:** node-cron
 

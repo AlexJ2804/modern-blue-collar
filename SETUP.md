@@ -165,7 +165,6 @@ To re-brand for a new client:
                                                                                                 │   ├── pricebook.js
                                                                                                     │   ├── quickbooks.js
                                                                                                         │   ├── quotes.js
-                                                                                                            │   ├── sms.js
                                                                                                                 │   └── users.js
                                                                                                                     └── public/              # Frontend (HTML / JS / CSS)
                                                                                                                             ├── index.html       # Dashboard

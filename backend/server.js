@@ -124,7 +124,6 @@ app.use('/api/quotes',          require('./routes/quotes'));
 app.use('/api/invoices',        require('./routes/invoices'));
 app.use('/api/auth',            require('./routes/auth').router);
 app.use('/api/quickbooks',      require('./routes/quickbooks'));
-app.use('/api/sms',             require('./routes/sms'));
 app.use('/api/backup',          require('./routes/backup'));
 app.use('/api/pricebook',       require('./routes/pricebook'));
 app.use('/api/exports',         require('./routes/exports'));

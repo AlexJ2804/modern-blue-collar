@@ -196,11 +196,11 @@ model Communication {
 }
 
 // ─── ApiKey ──────────────────────────────────────────────────────────────────
-// Per-company API keys for external integrations (QuickBooks, Twilio, Square…)
+// Per-company API keys for external integrations (QuickBooks, Square…)
 // Keys are hashed with bcrypt — the plaintext is shown only once at creation.
 model ApiKey {
   id          Int       @id @default(autoincrement())
-  // Human-readable label, e.g. "QuickBooks Sync", "Twilio", "Square POS"
+  // Human-readable label, e.g. "QuickBooks Sync", "Square POS"
   name        String
   // Unique prefix for lookup: first 8 chars of the key (e.g. "mbc_a1b2")
   prefix      String    @unique
