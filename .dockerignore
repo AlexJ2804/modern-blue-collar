@@ -1,0 +1,18 @@
+# Keep the build context small and never clobber the image's installed deps.
+**/node_modules
+.git
+.gitignore
+
+# Never bake secrets into the image
+**/.env
+.env
+.env.*
+!.env.example
+
+# Runtime / local artifacts
+backend/backups/
+**/*.db
+**/*.db-journal
+**/*.log
+npm-debug.log*
+.DS_Store
