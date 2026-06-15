@@ -24,6 +24,49 @@ The entire platform is **white-labeled via a single config file** (`brand.config
 
 ---
 
+## Running a local demo (Docker — free, no cloud accounts)
+
+Spin up the whole platform — app, PostgreSQL, S3-compatible storage (MinIO), and
+an email catch-all (Mailpit) — with **no paid services and no real credentials**.
+Requires only Docker + Docker Compose.
+
+```bash
+cp .env.example .env
+docker compose --profile demo up --build
+```
+
+Then open:
+
+| URL | What |
+|-----|------|
+| http://localhost:3001 | The app — sign in with **admin@demo.test** / **demo1234** |
+| http://localhost:8025 | Mailpit — every outbound email lands here |
+| http://localhost:9001 | MinIO console — uploaded job photos (`minioadmin` / `minioadmin`) |
+
+`--profile demo` + `DEMO_MODE=true` together:
+
+- Seed a demo admin, team, customers, jobs and a pricebook on first boot.
+- **Auth:** local email/password login (the Google button is hidden).
+- **Storage:** job photos upload to MinIO — open any job → **Photos** → **Upload Photo**.
+- **Email:** team-invite emails are caught by Mailpit instead of being sent.
+- **Twilio / QuickBooks:** dormant — SMS is logged to the console, QuickBooks
+  live auth is disabled (the "Connect" path stays visible).
+
+Tear down (and wipe data) with `docker compose --profile demo down -v`.
+
+### Same file, production
+
+The compose file is production-capable by **changing only `.env`** — omit the
+profile so MinIO/Mailpit don't start and the app uses your external services:
+
+```bash
+# in .env: DEMO_MODE=false, real DATABASE_URL, S3_*/SMTP_* → Wasabi + real SMTP,
+#          plus any Google / QuickBooks / Twilio creds you use
+docker compose up -d --build
+```
+
+---
+
 ## Supported Trade Types
 
 | Trade | `BRAND_TRADE_TYPE` |
@@ -76,12 +119,14 @@ That's it. No other files need to change.
 ## Tech Stack
 
 - **Backend:** Node.js / Express
-- **Database:** SQLite via Prisma ORM (PostgreSQL-ready)
+- **Database:** PostgreSQL via Prisma ORM
 - **Frontend:** Vanilla HTML/JS/CSS (no framework dependency)
-- **Auth:** JWT + Google OAuth (Passport.js)
+- **Auth:** JWT email/password + Google OAuth (Passport.js)
 - **SMS:** Twilio
 - **Accounting:** QuickBooks Online API
+- **Object storage:** AWS S3 SDK — MinIO locally, Wasabi / S3 in production
 - **Scheduler:** node-cron
+- **Local demo stack:** Docker Compose (PostgreSQL · MinIO · Mailpit)
 
 ---
 

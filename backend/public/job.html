@@ -53,6 +53,11 @@
     .action-bar{display:flex;gap:0.75rem;flex-wrap:wrap;}
     select.inline{padding:0.35rem 0.7rem;border:1px solid #cbd5e1;border-radius:6px;font-size:0.85rem;background:#fff;}
     .version-info{font-size:0.75rem;color:#94a3b8;margin-top:0.5rem;}
+    .photo-gallery{display:flex;flex-wrap:wrap;gap:0.6rem;}
+    .photo-thumb{position:relative;width:104px;height:104px;border-radius:8px;overflow:hidden;border:1px solid #e2e8f0;background:#f1f5f9;}
+    .photo-thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+    .photo-thumb .del{position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:5px;width:22px;height:22px;cursor:pointer;font-size:0.85rem;line-height:1;padding:0;}
+    .photo-upload{margin-top:0.85rem;display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;}
   </style>
 </head>
 <body>
@@ -118,6 +123,15 @@
         <div class="card">
           <h3>Notes</h3>
           <textarea class="notes-area" id="job-notes" placeholder="Add job notes..."></textarea>
+        </div>
+        <div class="card">
+          <h3>Photos</h3>
+          <div id="photo-gallery" class="photo-gallery"><span style="color:#94a3b8;font-size:0.85rem;">No photos yet.</span></div>
+          <div class="photo-upload">
+            <input type="file" id="photo-input" accept="image/*" style="font-size:0.85rem;" />
+            <button class="btn-sm" id="btn-upload-photo" onclick="uploadPhoto()">Upload Photo</button>
+            <span id="photo-status" style="font-size:0.8rem;color:#64748b;"></span>
+          </div>
         </div>
         <div class="card line-items">
           <h3>Line Items</h3>
@@ -237,6 +251,7 @@ async function loadJob(){
     if(invHtml)invEl.innerHTML=invHtml;else invEl.textContent='None yet.';
     // Load initial presence
     try{const pr=await fetch(API+'/api/presence/'+jobId);const pd=await pr.json();updatePresenceBanner(pd.viewers);}catch(e){}
+    loadPhotos();
   }catch(e){
     document.getElementById('loading-msg').style.display='none';
     document.getElementById('error-msg').style.display='block';
@@ -274,6 +289,46 @@ async function createInvoice(){
 
 async function sendSMS(){
   try{const r=await fetch(API+'/api/sms/job-confirm/'+jobId,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');alert('SMS sent!');}catch(e){alert('SMS failed: '+e.message);}
+}
+
+// ── Job photos (stored in MinIO/S3 via the API) ──────────────────────────────
+async function loadPhotos(){
+  try{
+    const r=await fetch(API+'/api/jobs/'+jobId+'/photos',{headers:{Authorization:'Bearer '+token}});
+    if(!r.ok)return;
+    const photos=await r.json();
+    const g=document.getElementById('photo-gallery');
+    if(!photos.length){g.innerHTML='<span style="color:#94a3b8;font-size:0.85rem;">No photos yet.</span>';return;}
+    g.innerHTML='';
+    for(const p of photos){
+      const wrap=document.createElement('div');wrap.className='photo-thumb';
+      const img=document.createElement('img');img.alt=p.originalName||'photo';img.title=p.originalName||'';
+      // The raw bytes are behind auth, so fetch with the token and render as a blob URL.
+      try{const ir=await fetch(API+p.url,{headers:{Authorization:'Bearer '+token}});if(ir.ok)img.src=URL.createObjectURL(await ir.blob());}catch(e){}
+      const del=document.createElement('button');del.className='del';del.textContent='×';del.title='Delete';del.onclick=function(){deletePhoto(p.id);};
+      wrap.appendChild(img);wrap.appendChild(del);g.appendChild(wrap);
+    }
+  }catch(e){console.warn(e);}
+}
+async function uploadPhoto(){
+  const inp=document.getElementById('photo-input');const status=document.getElementById('photo-status');
+  if(!inp.files||!inp.files[0]){status.textContent='Choose an image first.';return;}
+  const fd=new FormData();fd.append('photo',inp.files[0]);
+  status.textContent='Uploading...';document.getElementById('btn-upload-photo').disabled=true;
+  try{
+    const r=await fetch(API+'/api/jobs/'+jobId+'/photos',{method:'POST',headers:{Authorization:'Bearer '+token},body:fd});
+    const d=await r.json();if(!r.ok)throw new Error(d.error||'Upload failed');
+    inp.value='';status.textContent='Uploaded.';loadPhotos();
+  }catch(e){status.textContent='Failed: '+e.message;}
+  finally{document.getElementById('btn-upload-photo').disabled=false;}
+}
+async function deletePhoto(id){
+  if(!confirm('Delete this photo?'))return;
+  try{
+    const r=await fetch(API+'/api/jobs/'+jobId+'/photos/'+id,{method:'DELETE',headers:{Authorization:'Bearer '+token}});
+    if(!r.ok){const d=await r.json();throw new Error(d.error||'Failed');}
+    loadPhotos();
+  }catch(e){alert('Delete failed: '+e.message);}
 }
 
 // Clean up presence on page leave

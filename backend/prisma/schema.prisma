@@ -70,6 +70,7 @@ model Job {
   quote         Quote?
   invoice       Invoice?
   jobParts      JobPart[]
+  photos        JobPhoto[]
   notes         String?
   version       Int       @default(1)
 }
@@ -184,4 +185,22 @@ model ApiKey {
   createdBy   User      @relation(fields: [createdById], references: [id])
   createdAt   DateTime  @default(now())
   expiresAt   DateTime?
+}
+
+// ─── JobPhoto ──────────────────────────────────────────────────────────────────
+// Photos attached to a job, stored in S3-compatible object storage (MinIO in the
+// local demo, Wasabi / S3 / Spaces in production). Only metadata + the object key
+// are persisted in the database; the bytes live in the bucket.
+model JobPhoto {
+  id           Int      @id @default(autoincrement())
+  job          Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId        Int
+  // Object storage key, e.g. jobs/12/1718-abc123-pipe.jpg
+  key          String
+  originalName String?
+  contentType  String?
+  size         Int?
+  // User id that uploaded the photo (no FK — kept simple, user may be deleted)
+  uploadedById Int?
+  createdAt    DateTime @default(now())
 }

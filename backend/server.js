@@ -138,6 +138,7 @@ app.get('/api/brand', (_req, res) => {
     industryLabel:   brand.industryLabel,
     jobTypes:        brand.jobTypes,
     colors:          brand.colors,
+    demoMode:        process.env.DEMO_MODE === 'true',
   });
 });
 

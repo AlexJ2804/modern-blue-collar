@@ -36,6 +36,9 @@ router.get('/status', requireAuth, (_req, res) => {
 
 // GET /api/quickbooks/connect  — initiates OAuth flow
 router.get('/connect', requireAuth, requireRole('super-admin', 'admin'), (_req, res) => {
+  if (process.env.DEMO_MODE === 'true') {
+    return res.status(200).json({ demo: true, message: 'QuickBooks live auth is disabled in demo mode. In production this redirects to Intuit OAuth.' });
+  }
   if (!process.env.QB_CLIENT_ID) return res.status(503).json({ error: 'QuickBooks not configured — set QB_* env vars' });
   const oauthClient = getOAuthClient();
   const authUri = oauthClient.authorizeUri({
